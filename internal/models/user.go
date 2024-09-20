@@ -1,0 +1,72 @@
+package models
+
+import (
+	"maribooru/internal/structs"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+)
+
+type UserModel struct {
+	db *gorm.DB
+}
+
+func NewUserModel(db *gorm.DB) *UserModel {
+	return &UserModel{
+		db: db,
+	}
+}
+
+func (u *UserModel) AssignAdmin(payload structs.User) (structs.Admin, error) {
+	admin := structs.Admin{
+		UserID: payload.ID,
+	}
+	err := u.db.Model(&structs.Admin{}).Create(&admin).Clauses(clause.Returning{}).Error
+	return admin, err
+}
+
+func (u *UserModel) Create(payload structs.User) (structs.User, error) {
+	user := payload
+	err := u.db.Model(&structs.User{}).Create(&user).Clauses(clause.Returning{}).Error
+	return user, err
+}
+
+func (u *UserModel) GetByID(id uuid.UUID) (structs.User, error) {
+	user := structs.User{}
+	err := u.db.Model(&structs.User{}).First(&user, id).Error
+	return user, err
+}
+
+func (u *UserModel) GetByName(name string) (structs.User, error) {
+	user := structs.User{}
+	err := u.db.Model(&structs.User{}).
+		Where("name = ?", name).
+		First(&user).Error
+	return user, err
+}
+
+func (u *UserModel) GetByNameOrEmail(mailname string) (structs.User, error) {
+	user := structs.User{}
+	err := u.db.Model(&structs.User{}).
+		Where("name = ?", mailname).
+		Or(u.db.Where("email = ?", mailname)).
+		First(&user).Error
+	return user, err
+}
+
+func (u *UserModel) Update(user structs.User) (structs.User, error) {
+	res := u.db.Model(&structs.User{}).Updates(&user)
+	if res.RowsAffected == 0 {
+		return structs.User{}, gorm.ErrRecordNotFound
+	}
+	return u.GetByID(user.ID)
+}
+
+func (u *UserModel) Delete(id uuid.UUID) error {
+	res := u.db.Model(&structs.User{}).Delete(&structs.User{}, id)
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return res.Error
+}
