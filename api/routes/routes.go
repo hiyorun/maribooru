@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"maribooru/api/middlewares"
 	"maribooru/internal/config"
 
 	"github.com/labstack/echo/v4"
@@ -13,6 +14,7 @@ type VersionOne struct {
 	db  *gorm.DB
 	cfg *config.Config
 	api *echo.Group
+	mw  *middlewares.Middleware
 	log *zap.Logger
 }
 
@@ -22,6 +24,7 @@ func InitVersionOne(e *echo.Echo, db *gorm.DB, cfg *config.Config, log *zap.Logg
 		db,
 		cfg,
 		e.Group("/api/v1"),
+		middlewares.NewMiddleware(cfg, db, log),
 		log,
 	}
 }

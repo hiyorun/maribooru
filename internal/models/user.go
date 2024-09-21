@@ -18,9 +18,9 @@ func NewUserModel(db *gorm.DB) *UserModel {
 	}
 }
 
-func (u *UserModel) AssignAdmin(payload structs.User) (structs.Admin, error) {
+func (u *UserModel) AssignAdmin(uuid uuid.UUID) (structs.Admin, error) {
 	admin := structs.Admin{
-		UserID: payload.ID,
+		UserID: uuid,
 	}
 	err := u.db.Model(&structs.Admin{}).Create(&admin).Clauses(clause.Returning{}).Error
 	return admin, err
@@ -34,7 +34,7 @@ func (u *UserModel) Create(payload structs.User) (structs.User, error) {
 
 func (u *UserModel) GetByID(id uuid.UUID) (structs.User, error) {
 	user := structs.User{}
-	err := u.db.Model(&structs.User{}).First(&user, id).Error
+	err := u.db.Model(&structs.User{}).Preload("Admin").Preload("Permission").First(&user, id).Error
 	return user, err
 }
 

@@ -23,6 +23,7 @@ type (
 	AppConfig struct {
 		Development  bool
 		EnforceEmail bool
+		AdminCreated bool
 	}
 	Database struct {
 		Username string

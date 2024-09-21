@@ -27,10 +27,7 @@ func InitDatabase(cfg *config.Config, log *zap.Logger) (*gorm.DB, error) {
 
 	db.AutoMigrate(structs.User{}, structs.Admin{}, structs.AppSettings{})
 
-	if err := db.First(&structs.AppSettings{}).Where("key = ?", "ADMIN_CREATED").Error; err != nil {
-		adminSettings := structs.AppSettings{Key: "ADMIN_CREATED", ValueBool: false}
-		db.Create(&adminSettings)
-	}
+	FetchSettings(cfg, db)
 
 	return db, err
 }
