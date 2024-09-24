@@ -10,6 +10,7 @@ func (av *VersionOne) Administrative() {
 	admin.POST("/create", userHandler.CreateAdmin)
 
 	user := admin.Group("/user")
+	user.PUT("/:id", userHandler.AdministrativeUserUpdate)
 	user.GET("/permission/:id", permissionHandler.GetByUserID)
 	user.POST("/permission", permissionHandler.Set)
 }
