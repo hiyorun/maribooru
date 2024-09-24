@@ -32,6 +32,19 @@ func (u *UserModel) Create(payload structs.User) (structs.User, error) {
 	return user, err
 }
 
+func (u *UserModel) GetAll(bounds structs.PagedRequest) (structs.UserSlice, error) {
+	users := []structs.User{}
+	err := u.db.
+		Model(&structs.User{}).
+		Preload("Admin").
+		Preload("Permission").
+		Limit(bounds.Limit).
+		Offset(bounds.Offset).
+		Find(&users).
+		Error
+	return users, err
+}
+
 func (u *UserModel) GetByID(id uuid.UUID) (structs.User, error) {
 	user := structs.User{}
 	err := u.db.Model(&structs.User{}).Preload("Admin").Preload("Permission").First(&user, id).Error

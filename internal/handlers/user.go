@@ -50,6 +50,26 @@ func (u *UserHandler) create(c echo.Context, user structs.User) error {
 	return helpers.Response(c, http.StatusOK, data, token)
 }
 
+func (u *UserHandler) getAllUser(c echo.Context) error {
+	u.log.Debug("UserHandler: GetAll")
+
+	bounds := structs.PagedRequest{
+		Limit:  50,
+		Offset: 0,
+	}
+	if err := c.Bind(&bounds); err != nil {
+		u.log.Error("Failed to set limit and offset, defaulting to 50 limit and 0 offset", zap.Error(err))
+	}
+
+	data, err := u.model.GetAll(bounds)
+	if err != nil {
+		u.log.Error("Failed to get users", zap.Error(err))
+		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while getting users")
+	}
+
+	return helpers.Response(c, http.StatusOK, data.ToResponse(), "")
+}
+
 func (u *UserHandler) getByID(c echo.Context, id uuid.UUID) error {
 	u.log.Debug("UserHandler: GetByID")
 
@@ -83,7 +103,7 @@ func (u *UserHandler) delete(c echo.Context, id uuid.UUID) error {
 	return helpers.Response(c, http.StatusOK, nil, "")
 }
 
-// END OF BASE CRUD ---------------------------- //
+// END OF INTERNAL CRUD ------------------------ //
 
 func (u *UserHandler) SignUp(c echo.Context) error {
 	u.log.Debug("UserHandler: SignUp")
@@ -139,7 +159,12 @@ func (u *UserHandler) SignIn(c echo.Context) error {
 	return helpers.Response(c, http.StatusOK, token, "")
 }
 
-func (u *UserHandler) GetSelf(c echo.Context) error {
+func (u *UserHandler) GetAllUsers(c echo.Context) error {
+	u.log.Debug("UserHandler: GetAllUsers")
+	return u.getAllUser(c)
+}
+
+func (u *UserHandler) SelfGet(c echo.Context) error {
 	u.log.Debug("UserHandler: GetSelf")
 	id, err := helpers.GetUserID(c, u.cfg.JWT.Secret)
 	if err != nil {
@@ -182,7 +207,7 @@ func (u *UserHandler) ChangePassword(c echo.Context) error {
 	return u.update(c, user)
 }
 
-func (u *UserHandler) UserUpdate(c echo.Context) error {
+func (u *UserHandler) SelfUpdate(c echo.Context) error {
 	paramID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		return helpers.Response(c, http.StatusBadRequest, nil, "ID is needed")

@@ -20,6 +20,8 @@ type (
 		Permission Permission
 	}
 
+	UserSlice []User
+
 	UserUpdate struct {
 		Name  string `json:"name" validate:"omitempty"`
 		Email string `json:"email" validate:"omitempty,email"`
@@ -105,4 +107,12 @@ func (u *User) ToResponse() UserResponse {
 		Admin:      u.Admin != (Admin{}),
 		Permission: u.Permission.Permission,
 	}
+}
+
+func (u UserSlice) ToResponse() []UserResponse {
+	response := make([]UserResponse, 0)
+	for _, user := range u {
+		response = append(response, user.ToResponse())
+	}
+	return response
 }
