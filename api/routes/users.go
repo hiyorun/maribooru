@@ -2,8 +2,6 @@ package routes
 
 import (
 	"maribooru/internal/handlers"
-
-	echojwt "github.com/labstack/echo-jwt/v4"
 )
 
 func (av *VersionOne) Users() {
@@ -12,8 +10,9 @@ func (av *VersionOne) Users() {
 	auth := av.api.Group("/auth")
 	auth.POST("/sign-in", handler.SignIn)
 	auth.POST("/sign-up", handler.SignUp)
-	auth.POST("/admin-create", handler.CreateAdmin)
+	auth.POST("/init-admin-create", handler.InitialCreateAdmin)
+	auth.POST("/change-password", handler.ChangePassword, av.mw.JWTMiddleware())
 
-	user := av.api.Group("/users", echojwt.WithConfig(av.cfg.JWT.Config))
+	user := av.api.Group("/users")
 	user.GET("/:id", handler.GetByID)
 }

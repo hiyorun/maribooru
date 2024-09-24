@@ -5,6 +5,7 @@ import (
 	"maribooru/internal/helpers"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
@@ -21,8 +22,10 @@ type (
 		AssetStorage AssetStorage
 	}
 	AppConfig struct {
-		Development  bool
-		EnforceEmail bool
+		Development   bool
+		EnforceEmail  bool
+		AdminCreated  bool
+		TokenLifetime time.Duration
 	}
 	Database struct {
 		Username string
@@ -55,6 +58,11 @@ func LoadConfig() (*Config, error) {
 
 	development, _ := configDefaults("DEVELOPMENT", "false")
 	enforceEmail, _ := configDefaults("ENFORCE_EMAIL", "false")
+	tokenStringLifetime, _ := configDefaults("TOKEN_LIFETIME", "24h")
+	tokenLifetime, err := time.ParseDuration(tokenStringLifetime)
+	if err != nil {
+		log.Fatal("Token lifetime must be a duration")
+	}
 
 	dbUsername, _ := configDefaults("DB_USERNAME", "maridb")
 	dbPassword, _ := configDefaults("DB_PASSWORD", "changeme")
@@ -81,8 +89,9 @@ func LoadConfig() (*Config, error) {
 
 	var cfg Config = Config{
 		AppConfig: AppConfig{
-			Development:  development == "true",
-			EnforceEmail: enforceEmail == "true",
+			Development:   development == "true",
+			EnforceEmail:  enforceEmail == "true",
+			TokenLifetime: tokenLifetime,
 		},
 		Database: Database{
 			Username: dbUsername,
