@@ -16,12 +16,12 @@ type JWTUser struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(uid uuid.UUID, name string, secret []byte) (string, error) {
+func GenerateJWT(uid uuid.UUID, name string, secret []byte, expiry time.Duration) (string, error) {
 	claims := JWTUser{
 		Name: name,
 		ID:   uid,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
 		},
 	}
 
@@ -36,7 +36,7 @@ func GetUserID(c echo.Context, secret []byte) (uuid.UUID, error) {
 	}
 
 	claims := JWTUser{}
-	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+	_, err := jwt.ParseWithClaims(token[7:], &claims, func(token *jwt.Token) (interface{}, error) {
 		return secret, nil
 	})
 	if err != nil {

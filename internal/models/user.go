@@ -28,7 +28,7 @@ func (u *UserModel) AssignAdmin(uuid uuid.UUID) (structs.Admin, error) {
 
 func (u *UserModel) Create(payload structs.User) (structs.User, error) {
 	user := payload
-	err := u.db.Model(&structs.User{}).Create(&user).Clauses(clause.Returning{}).Error
+	err := u.db.Create(&user).Clauses(clause.Returning{}).Error
 	return user, err
 }
 

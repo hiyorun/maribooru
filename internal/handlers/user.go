@@ -122,7 +122,7 @@ func (u *UserHandler) SignUp(c echo.Context) error {
 	if u.cfg.AppConfig.EnforceEmail {
 		permission.Permission = structs.Read
 	} else {
-		permission.Permission = structs.Write + structs.Read
+		permission.Permission = structs.Write | structs.Read
 	}
 
 	user.Permission = permission
@@ -133,7 +133,7 @@ func (u *UserHandler) SignUp(c echo.Context) error {
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while creating user")
 	}
 
-	token, err := helpers.GenerateJWT(data.ID, data.Name, u.cfg.JWT.Secret)
+	token, err := helpers.GenerateJWT(data.ID, data.Name, u.cfg.JWT.Secret, u.cfg.AppConfig.TokenLifetime)
 	if err != nil {
 		u.log.Error("Error while generating token", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to generate token")
@@ -163,7 +163,7 @@ func (u *UserHandler) SignIn(c echo.Context) error {
 		return helpers.Response(c, http.StatusUnauthorized, nil, "Invalid credentials")
 	}
 
-	token, err := helpers.GenerateJWT(data.ID, data.Name, u.cfg.JWT.Secret)
+	token, err := helpers.GenerateJWT(data.ID, data.Name, u.cfg.JWT.Secret, u.cfg.AppConfig.TokenLifetime)
 	if err != nil {
 		u.log.Error("Failed to generate token", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to generate token")
@@ -259,7 +259,7 @@ func (u *UserHandler) CreateAdmin(c echo.Context) error {
 		}
 	}
 
-	token, err := helpers.GenerateJWT(data.ID, data.Name, u.cfg.JWT.Secret)
+	token, err := helpers.GenerateJWT(data.ID, data.Name, u.cfg.JWT.Secret, u.cfg.AppConfig.TokenLifetime)
 	if err != nil {
 		u.log.Error("Error while generating token", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to generate token")

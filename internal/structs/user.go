@@ -9,7 +9,7 @@ import (
 
 type (
 	User struct {
-		ID         uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
+		ID         uuid.UUID `gorm:"primary_key;type:uuid"`
 		Name       string    `gorm:"unique;not null"`
 		Email      string    `gorm:"unique;default:null"`
 		Password   string    `gorm:"not null"`
@@ -47,6 +47,11 @@ type (
 		Email string    `json:"email"`
 	}
 )
+
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	u.ID = uuid.New()
+	return nil
+}
 
 func (s *SignUp) ToTable() User {
 	user := User{

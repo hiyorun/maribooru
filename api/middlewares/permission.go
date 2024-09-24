@@ -27,9 +27,6 @@ func (m *Middleware) PermissionMiddleware(requiredPermission structs.PermissionL
 				return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
 			}
 
-			if userPermission.Permission >= structs.Approve {
-				userPermission.Permission = userPermission.Permission | structs.Read | structs.Write
-			}
 			if userPermission.Permission&requiredPermission == 0 {
 				return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
 			}

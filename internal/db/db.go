@@ -25,7 +25,7 @@ func InitDatabase(cfg *config.Config, log *zap.Logger) (*gorm.DB, error) {
 		log.Fatal("Failed to connect to database:", zap.Error(err))
 	}
 
-	db.AutoMigrate(structs.User{}, structs.Admin{}, structs.AppSettings{})
+	db.AutoMigrate(structs.User{}, structs.Admin{}, structs.AppSettings{}, structs.Permission{})
 
 	FetchSettings(cfg, db)
 

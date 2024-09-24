@@ -1,6 +1,8 @@
 package structs
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -8,9 +10,16 @@ import (
 type (
 	PermissionLevel int
 	Permission      struct {
-		gorm.Model
-		UserID     uuid.UUID `gorm:"type:uuid"`
+		UserID     uuid.UUID `gorm:"type:uuid;primary_key"`
 		Permission PermissionLevel
+		CreatedAt  time.Time
+		UpdatedAt  time.Time
+		DeletedAt  gorm.DeletedAt
+	}
+
+	PermissionRequest struct {
+		UserID     uuid.UUID       `json:"user_id" validate:"required"`
+		Permission PermissionLevel `json:"permission_level" validate:"required"`
 	}
 )
 
@@ -20,3 +29,10 @@ const (
 	Approve
 	Moderate
 )
+
+func (p *PermissionRequest) ToTable() Permission {
+	return Permission{
+		Permission: p.Permission,
+		UserID:     p.UserID,
+	}
+}

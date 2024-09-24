@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type PermissionModel struct {
@@ -32,10 +33,14 @@ func (p *PermissionModel) IsAdmin(id uuid.UUID) (bool, error) {
 	return admin.ID != uuid.Nil, nil
 }
 
-func (p *PermissionModel) SetPermission(id uuid.UUID, permission structs.Permission) error {
-	res := p.db.Model(&structs.Permission{}).Where("user_id = ?", id).Updates(&permission)
+func (p *PermissionModel) SetPermission(permission structs.Permission) (structs.Permission, error) {
+	res := p.db.Model(&structs.Permission{}).Where("user_id = ?", permission.UserID).Updates(permission)
 	if res.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		res := permission
+		if err := p.db.Model(&structs.Permission{}).Create(&res).Clauses(clause.Returning{}).Error; err != nil {
+			return structs.Permission{}, err
+		}
+		return res, nil
 	}
-	return nil
+	return p.GetByUserID(permission.UserID)
 }

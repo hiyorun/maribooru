@@ -9,10 +9,15 @@ import (
 
 type (
 	Admin struct {
-		ID        uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
+		ID        uuid.UUID `gorm:"primary_key;type:uuid"`
 		UserID    uuid.UUID `gorm:"type:uuid"`
 		CreatedAt time.Time
 		UpdatedAt time.Time
 		DeletedAt gorm.DeletedAt
 	}
 )
+
+func (a *Admin) BeforeCreate(tx *gorm.DB) error {
+	a.ID = uuid.New()
+	return nil
+}

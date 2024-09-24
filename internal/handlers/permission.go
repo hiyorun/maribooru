@@ -45,20 +45,18 @@ func (p *PermissionHandler) GetByUserID(c echo.Context) error {
 
 func (p *PermissionHandler) Set(c echo.Context) error {
 	p.log.Debug("PermissionHandler: SetPermission")
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return helpers.Response(c, http.StatusBadRequest, nil, "ID is needed")
-	}
-	var request structs.Permission
+
+	var request structs.PermissionRequest
 	if err := c.Bind(&request); err != nil {
 		return helpers.Response(c, http.StatusBadRequest, nil, "Invalid request")
 	}
 	if err := c.Validate(&request); err != nil {
 		return helpers.Response(c, http.StatusBadRequest, nil, err.Error())
 	}
-	if err = p.model.SetPermission(id, request); err != nil {
+	data, err := p.model.SetPermission(request.ToTable())
+	if err != nil {
 		p.log.Debug("Failed to set permission", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while setting permission")
 	}
-	return helpers.Response(c, http.StatusOK, nil, "")
+	return helpers.Response(c, http.StatusOK, data, "")
 }
