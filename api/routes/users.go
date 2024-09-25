@@ -7,12 +7,16 @@ import (
 func (av *VersionOne) Users() {
 	handler := handlers.NewUserHandler(av.db, av.cfg, av.log)
 
-	auth := av.api.Group("/auth")
-	auth.POST("/sign-in", handler.SignIn)
-	auth.POST("/sign-up", handler.SignUp)
-	auth.POST("/init-admin-create", handler.InitialCreateAdmin)
-	auth.POST("/change-password", handler.ChangePassword, av.mw.JWTMiddleware())
+	user := av.api.Group("/user")
+	user.POST("/sign-in", handler.SignIn)
+	user.POST("/sign-up", handler.SignUp)
+	user.POST("/init-admin-create", handler.InitialCreateAdmin)
+	user.PUT("/change-password", handler.ChangePassword, av.mw.JWTMiddleware())
+	user.GET("/", handler.SelfGet, av.mw.JWTMiddleware())
+	user.PUT("/", handler.SelfUpdate, av.mw.JWTMiddleware())
+	user.DELETE("/", handler.SelfDelete, av.mw.JWTMiddleware())
 
-	user := av.api.Group("/users")
-	user.GET("/:id", handler.GetByID)
+	users := av.api.Group("/users")
+	users.GET("/:id", handler.GetUserByID)
+	users.GET("/", handler.GetAllUsers)
 }

@@ -20,6 +20,8 @@ type (
 		Permission Permission
 	}
 
+	UserSlice []User
+
 	UserUpdate struct {
 		Name  string `json:"name" validate:"omitempty"`
 		Email string `json:"email" validate:"omitempty,email"`
@@ -28,6 +30,16 @@ type (
 	UserPassword struct {
 		Password       string `json:"password" validate:"required,min=8"`
 		HashedPassword string `json:"-"`
+	}
+
+	UserResponse struct {
+		ID         uuid.UUID       `json:"id"`
+		Name       string          `json:"name"`
+		Email      string          `json:"email"`
+		CreatedAt  time.Time       `json:"created_at"`
+		UpdatedAt  time.Time       `json:"updated_at"`
+		Admin      bool            `json:"admin"`
+		Permission PermissionLevel `json:"permission"`
 	}
 
 	SignUp struct {
@@ -64,8 +76,10 @@ func (s *SignUp) ToTable() User {
 	return user
 }
 
-func (u *UserUpdate) ToTable() User {
-	user := User{}
+func (u *UserUpdate) ToTable(id uuid.UUID) User {
+	user := User{
+		ID: id,
+	}
 	if u.Name != "" {
 		user.Name = u.Name
 	}
@@ -81,4 +95,29 @@ func (u *User) ToAuthResponse() AuthResponse {
 		Name:  u.Name,
 		Email: u.Email,
 	}
+}
+
+func (u *User) ToResponse(includeEmail bool) UserResponse {
+	user := UserResponse{
+		ID:         u.ID,
+		Name:       u.Name,
+		CreatedAt:  u.CreatedAt,
+		UpdatedAt:  u.UpdatedAt,
+		Admin:      u.Admin != (Admin{}),
+		Permission: u.Permission.Permission,
+	}
+
+	if includeEmail {
+		user.Email = u.Email
+	}
+
+	return user
+}
+
+func (u UserSlice) ToResponse(includeEmail bool) []UserResponse {
+	response := make([]UserResponse, 0)
+	for _, user := range u {
+		response = append(response, user.ToResponse(includeEmail))
+	}
+	return response
 }
