@@ -11,9 +11,10 @@ func (av *VersionOne) Users() {
 	user.POST("/sign-in", handler.SignIn)
 	user.POST("/sign-up", handler.SignUp)
 	user.POST("/init-admin-create", handler.InitialCreateAdmin)
-	user.POST("/change-password", handler.ChangePassword, av.mw.JWTMiddleware())
+	user.PUT("/change-password", handler.ChangePassword, av.mw.JWTMiddleware())
 	user.GET("/", handler.SelfGet, av.mw.JWTMiddleware())
-	user.PUT("/:id", handler.SelfUpdate, av.mw.JWTMiddleware())
+	user.PUT("/", handler.SelfUpdate, av.mw.JWTMiddleware())
+	user.DELETE("/", handler.SelfDelete, av.mw.JWTMiddleware())
 
 	users := av.api.Group("/users")
 	users.GET("/:id", handler.GetUserByID)

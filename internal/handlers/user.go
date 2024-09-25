@@ -50,7 +50,7 @@ func (u *UserHandler) create(c echo.Context, user structs.User) error {
 	return helpers.Response(c, http.StatusOK, data, token)
 }
 
-func (u *UserHandler) getAllUser(c echo.Context) error {
+func (u *UserHandler) getAllUser(c echo.Context, includeEmail bool) error {
 	u.log.Debug("UserHandler: GetAll")
 
 	bounds := structs.PagedRequest{
@@ -67,10 +67,10 @@ func (u *UserHandler) getAllUser(c echo.Context) error {
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while getting users")
 	}
 
-	return helpers.Response(c, http.StatusOK, data.ToResponse(), "")
+	return helpers.Response(c, http.StatusOK, data.ToResponse(includeEmail), "")
 }
 
-func (u *UserHandler) getByID(c echo.Context, id uuid.UUID) error {
+func (u *UserHandler) getByID(c echo.Context, id uuid.UUID, includeEmail bool) error {
 	u.log.Debug("UserHandler: GetByID")
 
 	data, err := u.model.GetByID(id)
@@ -79,7 +79,7 @@ func (u *UserHandler) getByID(c echo.Context, id uuid.UUID) error {
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while getting user")
 	}
 
-	return helpers.Response(c, http.StatusOK, data.ToResponse(), "")
+	return helpers.Response(c, http.StatusOK, data.ToResponse(includeEmail), "")
 }
 
 func (u *UserHandler) update(c echo.Context, user structs.User) error {
@@ -91,7 +91,7 @@ func (u *UserHandler) update(c echo.Context, user structs.User) error {
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while updating user")
 	}
 
-	return helpers.Response(c, http.StatusOK, data.ToResponse(), "")
+	return helpers.Response(c, http.StatusOK, data.ToResponse(true), "")
 }
 
 func (u *UserHandler) delete(c echo.Context, id uuid.UUID) error {
@@ -108,7 +108,13 @@ func (u *UserHandler) delete(c echo.Context, id uuid.UUID) error {
 func (u *UserHandler) SignUp(c echo.Context) error {
 	u.log.Debug("UserHandler: SignUp")
 	var request structs.SignUp
-	u.bindAndValidate(c, &request)
+	if err := c.Bind(&request); err != nil {
+		return helpers.Response(c, http.StatusBadRequest, nil, "Invalid request")
+	}
+
+	if err := c.Validate(&request); err != nil {
+		return helpers.Response(c, http.StatusBadRequest, nil, err.Error())
+	}
 
 	if u.cfg.AppConfig.EnforceEmail {
 		if request.Email == "" {
@@ -139,7 +145,13 @@ func (u *UserHandler) SignUp(c echo.Context) error {
 func (u *UserHandler) SignIn(c echo.Context) error {
 	u.log.Debug("UserHandler: SignIn")
 	var request structs.SignIn
-	u.bindAndValidate(c, &request)
+	if err := c.Bind(&request); err != nil {
+		return helpers.Response(c, http.StatusBadRequest, nil, "Invalid request")
+	}
+
+	if err := c.Validate(&request); err != nil {
+		return helpers.Response(c, http.StatusBadRequest, nil, err.Error())
+	}
 
 	data, err := u.model.GetByNameOrEmail(request.NameOrEmail)
 	if err != nil {
@@ -147,6 +159,7 @@ func (u *UserHandler) SignIn(c echo.Context) error {
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(data.Password), []byte(request.Password)); err != nil {
+		u.log.Error("Error while comparing passwords", zap.Error(err))
 		return helpers.Response(c, http.StatusUnauthorized, nil, "Invalid credentials")
 	}
 
@@ -161,7 +174,7 @@ func (u *UserHandler) SignIn(c echo.Context) error {
 
 func (u *UserHandler) GetAllUsers(c echo.Context) error {
 	u.log.Debug("UserHandler: GetAllUsers")
-	return u.getAllUser(c)
+	return u.getAllUser(c, false)
 }
 
 func (u *UserHandler) SelfGet(c echo.Context) error {
@@ -171,7 +184,7 @@ func (u *UserHandler) SelfGet(c echo.Context) error {
 		return helpers.Response(c, http.StatusBadRequest, nil, "Failed to get your details")
 	}
 
-	return u.getByID(c, id)
+	return u.getByID(c, id, true)
 }
 
 func (u *UserHandler) GetUserByID(c echo.Context) error {
@@ -180,18 +193,26 @@ func (u *UserHandler) GetUserByID(c echo.Context) error {
 		return helpers.Response(c, http.StatusBadRequest, nil, "ID is needed")
 	}
 
-	return u.getByID(c, id)
+	return u.getByID(c, id, true)
 }
 
 func (u *UserHandler) ChangePassword(c echo.Context) error {
 	u.log.Debug("UserHandler: ChangePassword")
 	userID, err := helpers.GetUserID(c, u.cfg.JWT.Secret)
+	u.log.Debug("userID", zap.Any("id", userID))
+
 	if err != nil {
 		return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
 	}
 
 	var request structs.UserPassword
-	u.bindAndValidate(c, &request)
+	if err := c.Bind(&request); err != nil {
+		return helpers.Response(c, http.StatusBadRequest, nil, "Invalid request")
+	}
+
+	if err := c.Validate(&request); err != nil {
+		return helpers.Response(c, http.StatusBadRequest, nil, err.Error())
+	}
 
 	hashedPassword, err := helpers.PasswordHash(request.Password)
 	if err != nil {
@@ -208,18 +229,12 @@ func (u *UserHandler) ChangePassword(c echo.Context) error {
 }
 
 func (u *UserHandler) SelfUpdate(c echo.Context) error {
-	paramID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return helpers.Response(c, http.StatusBadRequest, nil, "ID is needed")
-	}
-
 	id, err := helpers.GetUserID(c, u.cfg.JWT.Secret)
-	if id != paramID {
-		return helpers.Response(c, http.StatusForbidden, nil, "You can't update other user")
+	if err != nil {
+		return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
 	}
 
 	var request structs.UserUpdate
-	u.bindAndValidate(c, &request)
 
 	if request.Name == "" && request.Email == "" {
 		return helpers.Response(c, http.StatusBadRequest, nil, "Nothing to update")
@@ -228,13 +243,12 @@ func (u *UserHandler) SelfUpdate(c echo.Context) error {
 	return u.update(c, request.ToTable(id))
 }
 
-func (u *UserHandler) bindAndValidate(c echo.Context, req interface{}) error {
-	if err := c.Bind(&req); err != nil {
-		return helpers.Response(c, http.StatusBadRequest, nil, "Invalid request")
+func (u *UserHandler) SelfDelete(c echo.Context) error {
+	u.log.Debug("UserHandler: SelfDelete")
+	id, err := helpers.GetUserID(c, u.cfg.JWT.Secret)
+	if err != nil {
+		return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
 	}
 
-	if err := c.Validate(&req); err != nil {
-		return helpers.Response(c, http.StatusBadRequest, nil, err.Error())
-	}
-	return nil
+	return u.delete(c, id)
 }

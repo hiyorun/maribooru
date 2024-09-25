@@ -97,22 +97,27 @@ func (u *User) ToAuthResponse() AuthResponse {
 	}
 }
 
-func (u *User) ToResponse() UserResponse {
-	return UserResponse{
+func (u *User) ToResponse(includeEmail bool) UserResponse {
+	user := UserResponse{
 		ID:         u.ID,
 		Name:       u.Name,
-		Email:      u.Email,
 		CreatedAt:  u.CreatedAt,
 		UpdatedAt:  u.UpdatedAt,
 		Admin:      u.Admin != (Admin{}),
 		Permission: u.Permission.Permission,
 	}
+
+	if includeEmail {
+		user.Email = u.Email
+	}
+
+	return user
 }
 
-func (u UserSlice) ToResponse() []UserResponse {
+func (u UserSlice) ToResponse(includeEmail bool) []UserResponse {
 	response := make([]UserResponse, 0)
 	for _, user := range u {
-		response = append(response, user.ToResponse())
+		response = append(response, user.ToResponse(includeEmail))
 	}
 	return response
 }
