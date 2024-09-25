@@ -20,7 +20,9 @@ func InitDatabase(cfg *config.Config, log *zap.Logger) (*gorm.DB, error) {
 		cfg.Database.SSL,
 	)
 
-	db, err := gorm.Open(postgres.Open(dc), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dc), &gorm.Config{
+		TranslateError: true,
+	})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", zap.Error(err))
 	}

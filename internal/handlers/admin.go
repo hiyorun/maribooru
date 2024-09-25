@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"maribooru/internal/helpers"
 	"maribooru/internal/models"
 	"maribooru/internal/structs"
@@ -9,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 func (u *UserHandler) InitialCreateAdmin(c echo.Context) error {
@@ -84,13 +86,15 @@ func (u *UserHandler) GetAllAdmin(c echo.Context) error {
 		u.log.Error("Failed to set limit and offset, defaulting to 50 limit and 0 offset", zap.Error(err))
 	}
 
-	data, err := u.model.GetAllAdmin(bounds)
+	data, total, err := u.model.GetAllAdmin(bounds)
 	if err != nil {
 		u.log.Error("Failed to get admins", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to get admins")
 	}
 
-	return helpers.Response(c, http.StatusOK, data.ToResponse(true), "")
+	paged := helpers.PageData(data.ToResponse(true), int(total), bounds.Offset, bounds.Limit)
+
+	return helpers.Response(c, http.StatusOK, paged, "")
 }
 
 func (u *UserHandler) AssignAdmin(c echo.Context) error {
@@ -102,6 +106,9 @@ func (u *UserHandler) AssignAdmin(c echo.Context) error {
 
 	data, err := u.model.AssignAdmin(id)
 	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return helpers.Response(c, http.StatusConflict, nil, "Already an admin")
+		}
 		u.log.Error("Failed to assign admin", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to assign admin")
 	}

@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"maribooru/internal/structs"
+	"math"
 
 	"github.com/labstack/echo/v4"
 )
@@ -24,11 +25,13 @@ func ResponseWithSettings(c echo.Context, status int, data interface{}, msg stri
 	return c.JSON(status, response)
 }
 
-func PageData(data interface{}, total, page, perPage int) structs.PagedData {
+func PageData(data interface{}, total, offset, limit int) structs.PagedData {
+	page := int(math.Ceil((float64(offset) + 1) / float64(limit)))
+
 	paged := structs.PagedData{
 		List: data,
 		Meta: structs.Metadata{
-			PerPage: perPage,
+			PerPage: limit,
 			Page:    page,
 			Total:   total,
 		},
