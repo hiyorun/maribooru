@@ -54,20 +54,24 @@ func (u *UserHandler) getAllUser(c echo.Context, includeEmail bool) error {
 	u.log.Debug("UserHandler: GetAll")
 
 	bounds := structs.PagedRequest{
-		Limit:  50,
-		Offset: 0,
+		Limit:    50,
+		Offset:   0,
+		Keywords: "",
+		Sort:     "",
 	}
 	if err := c.Bind(&bounds); err != nil {
 		u.log.Error("Failed to set limit and offset, defaulting to 50 limit and 0 offset", zap.Error(err))
 	}
 
-	data, err := u.model.GetAll(bounds)
+	data, total, err := u.model.GetAll(bounds)
 	if err != nil {
 		u.log.Error("Failed to get users", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while getting users")
 	}
 
-	return helpers.Response(c, http.StatusOK, data.ToResponse(includeEmail), "")
+	paged := helpers.PageData(data.ToResponse(includeEmail), int(total), bounds.Offset, bounds.Limit)
+
+	return helpers.Response(c, http.StatusOK, paged, "")
 }
 
 func (u *UserHandler) getByID(c echo.Context, id uuid.UUID, includeEmail bool) error {
@@ -235,6 +239,13 @@ func (u *UserHandler) SelfUpdate(c echo.Context) error {
 	}
 
 	var request structs.UserUpdate
+	if err := c.Bind(&request); err != nil {
+		return helpers.Response(c, http.StatusBadRequest, nil, "Invalid request")
+	}
+
+	if err := c.Validate(&request); err != nil {
+		return helpers.Response(c, http.StatusBadRequest, nil, err.Error())
+	}
 
 	if request.Name == "" && request.Email == "" {
 		return helpers.Response(c, http.StatusBadRequest, nil, "Nothing to update")

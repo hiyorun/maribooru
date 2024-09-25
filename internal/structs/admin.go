@@ -10,7 +10,7 @@ import (
 type (
 	Admin struct {
 		ID        uuid.UUID `gorm:"primary_key;type:uuid"`
-		UserID    uuid.UUID `gorm:"type:uuid"`
+		UserID    uuid.UUID `gorm:"type:uuid;unique"`
 		CreatedAt time.Time
 		UpdatedAt time.Time
 		DeletedAt gorm.DeletedAt

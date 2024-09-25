@@ -16,5 +16,5 @@ func (av *VersionOne) Administrative() {
 	user := admin.Group("/user")
 	user.PUT("/:id", userHandler.AdministrativeUserUpdate)
 	user.GET("/permission/:id", permissionHandler.GetByUserID)
-	user.POST("/permission", permissionHandler.Set)
+	user.PUT("/permission", permissionHandler.Set)
 }
