@@ -28,8 +28,8 @@ type (
 	}
 
 	UserPassword struct {
-		Password       string `json:"password" validate:"required,min=8"`
-		HashedPassword string `json:"-"`
+		OldPassword string `json:"old_password" validate:"required,min=8"`
+		NewPassword string `json:"new_password" validate:"required,min=8"`
 	}
 
 	UserResponse struct {
@@ -43,14 +43,16 @@ type (
 	}
 
 	SignUp struct {
-		Name  string `json:"name" validate:"required"`
-		Email string `json:"email" validate:"omitempty,email"`
-		UserPassword
+		Name           string `json:"name" validate:"required"`
+		Email          string `json:"email" validate:"omitempty,email"`
+		Password       string `json:"password" validate:"required,min=8"`
+		HashedPassword string `json:"-"`
 	}
 
 	SignIn struct {
-		NameOrEmail string `json:"name_or_email" validate:"required"`
-		UserPassword
+		NameOrEmail    string `json:"name_or_email" validate:"required"`
+		Password       string `json:"password" validate:"required,min=8"`
+		HashedPassword string `json:"-"`
 	}
 
 	AuthResponse struct {

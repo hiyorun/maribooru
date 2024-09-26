@@ -202,9 +202,7 @@ func (u *UserHandler) GetUserByID(c echo.Context) error {
 
 func (u *UserHandler) ChangePassword(c echo.Context) error {
 	u.log.Debug("UserHandler: ChangePassword")
-	userID, err := helpers.GetUserID(c, u.cfg.JWT.Secret)
-	u.log.Debug("userID", zap.Any("id", userID))
-
+	id, err := helpers.GetUserID(c, u.cfg.JWT.Secret)
 	if err != nil {
 		return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
 	}
@@ -218,16 +216,23 @@ func (u *UserHandler) ChangePassword(c echo.Context) error {
 		return helpers.Response(c, http.StatusBadRequest, nil, err.Error())
 	}
 
-	hashedPassword, err := helpers.PasswordHash(request.Password)
+	user, err := u.model.GetByID(id)
+	if err != nil {
+		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to change password")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.OldPassword)); err != nil {
+		u.log.Error("Error while comparing passwords", zap.Error(err))
+		return helpers.Response(c, http.StatusUnauthorized, nil, "Invalid credentials")
+	}
+
+	hashedPassword, err := helpers.PasswordHash(request.NewPassword)
 	if err != nil {
 		u.log.Error("Error while hashing password", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while hashing password")
 	}
 
-	user := structs.User{
-		ID:       userID,
-		Password: hashedPassword,
-	}
+	user.Password = hashedPassword
 
 	return u.update(c, user)
 }
