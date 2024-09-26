@@ -8,7 +8,7 @@ import (
 
 func (av *VersionOne) Heartbeat() {
 	hb := av.api.Group("/heartbeat")
-	hb.GET("/", OK)
+	hb.GET("", OK)
 }
 
 func OK(c echo.Context) error {

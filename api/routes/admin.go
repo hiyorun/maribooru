@@ -8,8 +8,8 @@ func (av *VersionOne) Administrative() {
 	admin := av.api.Group("/admin", av.mw.AdminMiddleware())
 
 	manage := admin.Group("/manage")
-	manage.POST("/", userHandler.CreateAdmin)
-	manage.GET("/", userHandler.GetAllAdmin)
+	manage.POST("", userHandler.CreateAdmin)
+	manage.GET("", userHandler.GetAllAdmin)
 	manage.PUT("/:id", userHandler.AssignAdmin)
 	manage.DELETE("/:id", userHandler.RemoveAdmin)
 
