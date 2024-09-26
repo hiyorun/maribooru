@@ -16,8 +16,40 @@ import (
 func (u *UserHandler) InitialCreateAdmin(c echo.Context) error {
 	u.log.Debug("UserHandler: InitialCreateAdmin")
 	if u.cfg.AppConfig.AdminCreated {
-		return helpers.Response(c, http.StatusUnauthorized, nil, "Admin already created")
+		return helpers.Response(c, http.StatusForbidden, nil, "Admin already created")
 	}
+
+	bounds := structs.PagedRequest{
+		Limit:    10,
+		Offset:   0,
+		Sort:     "id",
+		Keywords: "",
+	}
+
+	_, count, err := u.model.GetAllAdmin(bounds)
+	if err != nil {
+		u.log.Error("Failed to check if admin exists", zap.Error(err))
+		return helpers.Response(c, http.StatusInternalServerError, nil, "")
+	}
+
+	if count > 0 {
+		u.log.Warn("Admin exists, but ADMIN_CREATED is false. Updating ADMIN_CREATED to true")
+		u.cfg.AppConfig.AdminCreated = true
+
+		model := models.NewSettingsModel(u.db)
+		settings := structs.AppSettings{
+			Key:       "ADMIN_CREATED",
+			ValueBool: true,
+		}
+		err := model.Update(settings)
+		if err != nil {
+			u.log.Error("Failed to update settings", zap.Error(err))
+			return helpers.Response(c, http.StatusInternalServerError, nil, "")
+		}
+
+		return helpers.Response(c, http.StatusForbidden, nil, "Admin already created")
+	}
+
 	return u.CreateAdmin(c)
 }
 
@@ -70,7 +102,9 @@ func (u *UserHandler) CreateAdmin(c echo.Context) error {
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to generate token")
 	}
 
-	return helpers.Response(c, http.StatusOK, admin, token)
+	data.Admin = admin
+
+	return helpers.Response(c, http.StatusOK, data.ToResponse(true), token)
 }
 
 func (u *UserHandler) GetAllAdmin(c echo.Context) error {
