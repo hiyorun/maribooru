@@ -73,37 +73,45 @@ func (u *UserHandler) CreateAdmin(c echo.Context) error {
 	}
 	request.HashedPassword = hashedPassword
 
-	data, err := u.model.Create(request.ToTable())
+	tx := u.db.Begin()
+	userModel := models.NewUserModel(tx)
+
+	data, err := userModel.Create(request.ToTable())
 	if err != nil {
+		tx.Rollback()
 		u.log.Error("Failed to create user", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while creating admin")
 	}
 
-	admin, err := u.model.AssignAdmin(data.ID)
+	admin, err := userModel.AssignAdmin(data.ID)
 	if err != nil {
+		tx.Rollback()
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to assign admin")
 	}
 
 	if !u.cfg.AppConfig.AdminCreated {
-		settingsModel := models.NewSettingsModel(u.db)
+		settingsModel := models.NewSettingsModel(tx)
 		adminSettings := structs.AppSettings{
 			Key:       "ADMIN_CREATED",
 			ValueBool: true,
 		}
 
 		if err := settingsModel.Update(adminSettings); err != nil {
+			tx.Rollback()
 			return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to update admin settings")
 		}
 	}
 
 	token, err := helpers.GenerateJWT(data.ID, data.Name, u.cfg.JWT.Secret, u.cfg.AppConfig.TokenLifetime)
 	if err != nil {
+		tx.Rollback()
 		u.log.Error("Error while generating token", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to generate token")
 	}
 
 	data.Admin = admin
 
+	tx.Commit()
 	return helpers.Response(c, http.StatusOK, data.ToResponse(true), token)
 }
 

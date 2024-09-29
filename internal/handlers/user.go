@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"maribooru/internal/config"
 	"maribooru/internal/helpers"
 	"maribooru/internal/models"
@@ -37,6 +38,9 @@ func (u *UserHandler) create(c echo.Context, user structs.User) error {
 
 	data, err := u.model.Create(user)
 	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return helpers.Response(c, http.StatusConflict, nil, "User with this name/email already exists")
+		}
 		u.log.Debug("Failed to create user", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while creating user")
 	}
@@ -71,6 +75,10 @@ func (u *UserHandler) getAllUser(c echo.Context, includeEmail bool) error {
 
 	paged := helpers.PageData(data.ToResponse(includeEmail), int(total), bounds.Offset, bounds.Limit)
 
+	if total == 0 {
+		return helpers.Response(c, http.StatusNotFound, paged, "There's no user")
+	}
+
 	return helpers.Response(c, http.StatusOK, paged, "")
 }
 
@@ -79,6 +87,9 @@ func (u *UserHandler) getByID(c echo.Context, id uuid.UUID, includeEmail bool) e
 
 	data, err := u.model.GetByID(id)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return helpers.Response(c, http.StatusNotFound, nil, "User not found")
+		}
 		u.log.Debug("Failed to get user", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while getting user")
 	}
@@ -102,6 +113,9 @@ func (u *UserHandler) delete(c echo.Context, id uuid.UUID) error {
 	u.log.Debug("UserHandler: Delete")
 
 	if err := u.model.Delete(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return helpers.Response(c, http.StatusNotFound, nil, "User not found")
+		}
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while deleting user")
 	}
 	return helpers.Response(c, http.StatusOK, nil, "")
@@ -218,12 +232,15 @@ func (u *UserHandler) ChangePassword(c echo.Context) error {
 
 	user, err := u.model.GetByID(id)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return helpers.Response(c, http.StatusNotFound, nil, "User not found")
+		}
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to change password")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.OldPassword)); err != nil {
 		u.log.Error("Error while comparing passwords", zap.Error(err))
-		return helpers.Response(c, http.StatusUnauthorized, nil, "Invalid credentials")
+		return helpers.Response(c, http.StatusUnauthorized, nil, "Old and new password don't match")
 	}
 
 	hashedPassword, err := helpers.PasswordHash(request.NewPassword)
