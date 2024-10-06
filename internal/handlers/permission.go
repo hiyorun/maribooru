@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"maribooru/internal/config"
 	"maribooru/internal/helpers"
 	"maribooru/internal/models"
@@ -37,10 +38,13 @@ func (p *PermissionHandler) GetByUserID(c echo.Context) error {
 	}
 	data, err := p.model.GetByUserID(id)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return helpers.Response(c, http.StatusNotFound, nil, "User not found")
+		}
 		p.log.Debug("Failed to get user", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while getting user")
 	}
-	return helpers.Response(c, http.StatusOK, data, "")
+	return helpers.Response(c, http.StatusOK, data.ToResponse(), "")
 }
 
 func (p *PermissionHandler) Set(c echo.Context) error {
@@ -58,5 +62,5 @@ func (p *PermissionHandler) Set(c echo.Context) error {
 		p.log.Debug("Failed to set permission", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while setting permission")
 	}
-	return helpers.Response(c, http.StatusOK, data, "")
+	return helpers.Response(c, http.StatusOK, data.ToResponse(), "")
 }
