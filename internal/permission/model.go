@@ -11,29 +11,29 @@ import (
 type (
 	Permission struct {
 		UserID     uuid.UUID `gorm:"type:uuid;primary_key"`
-		Permission PermissionLevel
+		Permission Level
 		CreatedAt  time.Time
 		UpdatedAt  time.Time
 		DeletedAt  gorm.DeletedAt
 	}
-	PermissionModel struct {
+	Model struct {
 		db *gorm.DB
 	}
 )
 
-func NewPermissionModel(db *gorm.DB) *PermissionModel {
-	return &PermissionModel{
+func NewModel(db *gorm.DB) *Model {
+	return &Model{
 		db: db,
 	}
 }
 
-func (p *PermissionModel) GetByUserID(id uuid.UUID) (Permission, error) {
+func (p *Model) GetByUserID(id uuid.UUID) (Permission, error) {
 	permission := Permission{}
 	err := p.db.Model(&Permission{}).Where("user_id = ?", id).First(&permission).Error
 	return permission, err
 }
 
-func (p *PermissionModel) SetPermission(permission Permission) (Permission, error) {
+func (p *Model) SetPermission(permission Permission) (Permission, error) {
 	res := p.db.Model(&Permission{}).Where("user_id = ?", permission.UserID).Updates(permission)
 	if res.RowsAffected == 0 {
 		res := permission

@@ -4,8 +4,7 @@ import (
 	"errors"
 	"maribooru/internal/config"
 	"maribooru/internal/helpers"
-	"maribooru/internal/models"
-	"maribooru/internal/structs"
+	"maribooru/internal/setting"
 	"net/http"
 	"time"
 
@@ -41,6 +40,16 @@ func (a *Admin) ToResponse() AdminResponse {
 	}
 }
 
+func NewAdminHandler(db *gorm.DB, cfg *config.Config, log *zap.Logger) *AdminHandler {
+	return &AdminHandler{
+		db:        db,
+		model:     NewAdminModel(db),
+		userModel: NewUserModel(db),
+		cfg:       cfg,
+		log:       log,
+	}
+}
+
 func (a *AdminHandler) InitialCreateAdmin(c echo.Context) error {
 	a.log.Debug("UserHandler: InitialCreateAdmin")
 	if a.cfg.AppConfig.AdminCreated {
@@ -67,8 +76,8 @@ func (a *AdminHandler) InitialCreateAdmin(c echo.Context) error {
 		a.log.Warn("Admin exists, but ADMIN_CREATED is false. Updating ADMIN_CREATED to true")
 		a.cfg.AppConfig.AdminCreated = true
 
-		model := models.NewSettingsModel(a.db)
-		settings := structs.AppSettings{
+		model := setting.NewModel(a.db)
+		settings := setting.AppSetting{
 			Key:       "ADMIN_CREATED",
 			ValueBool: true,
 		}
@@ -111,6 +120,9 @@ func (a *AdminHandler) CreateAdmin(c echo.Context) error {
 	data, err := userModel.Create(request.ToTable())
 	if err != nil {
 		tx.Rollback()
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return helpers.Response(c, http.StatusConflict, nil, "User with that email and/or username already exists")
+		}
 		a.log.Error("Failed to create user", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while creating admin")
 	}
@@ -122,8 +134,8 @@ func (a *AdminHandler) CreateAdmin(c echo.Context) error {
 	}
 
 	if !a.cfg.AppConfig.AdminCreated {
-		settingsModel := models.NewSettingsModel(tx)
-		adminSettings := structs.AppSettings{
+		settingsModel := setting.NewModel(tx)
+		adminSettings := setting.AppSetting{
 			Key:       "ADMIN_CREATED",
 			ValueBool: true,
 		}

@@ -27,13 +27,13 @@ type (
 	}
 
 	UserResponse struct {
-		ID         uuid.UUID                  `json:"id"`
-		Name       string                     `json:"name"`
-		Email      string                     `json:"email,omitempty"`
-		CreatedAt  time.Time                  `json:"created_at"`
-		UpdatedAt  time.Time                  `json:"updated_at"`
-		Admin      bool                       `json:"admin"`
-		Permission permission.PermissionLevel `json:"permission"`
+		ID         uuid.UUID        `json:"id"`
+		Name       string           `json:"name"`
+		Email      string           `json:"email,omitempty"`
+		CreatedAt  time.Time        `json:"created_at"`
+		UpdatedAt  time.Time        `json:"updated_at"`
+		Admin      bool             `json:"admin"`
+		Permission permission.Level `json:"permission"`
 	}
 
 	UserParams struct {

@@ -14,30 +14,30 @@ type (
 
 	AppSettingSlice []AppSetting
 
-	SettingModel struct {
+	Model struct {
 		db *gorm.DB
 	}
 )
 
-func NewSettingModel(db *gorm.DB) *SettingModel {
-	return &SettingModel{
+func NewModel(db *gorm.DB) *Model {
+	return &Model{
 		db: db,
 	}
 }
 
-func (s *SettingModel) Get() (AppSettingSlice, error) {
+func (s *Model) Get() (AppSettingSlice, error) {
 	settings := []AppSetting{}
 	err := s.db.Find(&settings).Error
 	return settings, err
 }
 
-func (s *SettingModel) GetByKey(key string) (AppSetting, error) {
+func (s *Model) GetByKey(key string) (AppSetting, error) {
 	settings := AppSetting{}
 	err := s.db.Where("key = ?", key).First(&settings).Error
 	return settings, err
 }
 
-func (s *SettingModel) Update(settings AppSetting) error {
+func (s *Model) Update(settings AppSetting) error {
 	res := s.db.Model(&AppSetting{}).Where("key = ?", settings.Key).Updates(&settings)
 	if res.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound

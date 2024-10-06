@@ -11,20 +11,20 @@ import (
 )
 
 type (
-	AppSettingResponse struct {
+	Response struct {
 		AdminCreated bool `json:"admin_created"`
 	}
 
-	SettingHandler struct {
+	Handler struct {
 		db     *gorm.DB
-		models *SettingModel
+		models *Model
 		cfg    *config.Config
 		log    *zap.Logger
 	}
 )
 
-func (a AppSettingSlice) ToResponse() AppSettingResponse {
-	response := AppSettingResponse{}
+func (a AppSettingSlice) ToResponse() Response {
+	response := Response{}
 	for _, setting := range a {
 		if setting.Key == "ADMIN_CREATED" {
 			response.AdminCreated = setting.ValueBool
@@ -33,17 +33,17 @@ func (a AppSettingSlice) ToResponse() AppSettingResponse {
 	return response
 }
 
-func NewSettingHandler(db *gorm.DB, cfg *config.Config, log *zap.Logger) *SettingHandler {
-	return &SettingHandler{
+func NewHandler(db *gorm.DB, cfg *config.Config, log *zap.Logger) *Handler {
+	return &Handler{
 		db,
-		NewSettingModel(db),
+		NewModel(db),
 		cfg,
 		log,
 	}
 }
 
-func (s *SettingHandler) Get(c echo.Context) error {
-	s.log.Debug("SettingHandler: Get")
+func (s *Handler) Get(c echo.Context) error {
+	s.log.Debug("Handler: Get")
 	data, err := s.models.Get()
 	if err != nil {
 		s.log.Error("Failed to get settings", zap.Error(err))

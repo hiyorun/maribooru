@@ -1,9 +1,11 @@
 package routes
 
-import "maribooru/internal/handlers"
+import (
+	"maribooru/internal/setting"
+)
 
 func (av *VersionOne) Settings() {
-	handler := handlers.NewSettingsHandler(av.db, av.cfg, av.log)
+	handler := setting.NewHandler(av.db, av.cfg, av.log)
 	settings := av.api.Group("/settings")
 	settings.GET("", handler.Get)
 }
