@@ -147,15 +147,6 @@
             "description": "The offset to start from. If empty, will always 0."
           },
           {
-            "name": "keywords",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Name or email to filter users by. Show all if empty."
-          },
-          {
             "name": "is_admin",
             "in": "query",
             "required": false,
@@ -700,7 +691,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Name or email to filter admins by. Show all if empty."
+            "description": "Name to filter admins by. Show all if empty."
           },
           {
             "name": "sort",
