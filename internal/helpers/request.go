@@ -1,7 +1,7 @@
-package structs
+package helpers
 
 type (
-	PagedRequest struct {
+	GenericPagedQuery struct {
 		Limit    int    `query:"limit"`
 		Offset   int    `query:"offset"`
 		Keywords string `query:"keywords"`

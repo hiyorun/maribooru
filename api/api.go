@@ -57,8 +57,7 @@ func (s *HTTPServer) RunHTTPServer() {
 	api := routes.InitVersionOne(s.httpServer, s.db, s.cfg, s.log)
 
 	api.Settings()
-	api.Users()
-	api.Administrative()
+	api.Accounts()
 	api.Heartbeat()
 
 	openPort, err := s.testPort()

@@ -1,12 +1,12 @@
-package handlers
+package account
 
 import (
 	"errors"
 	"maribooru/internal/config"
 	"maribooru/internal/helpers"
-	"maribooru/internal/models"
-	"maribooru/internal/structs"
+	"maribooru/internal/permission"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -15,17 +15,120 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserHandler struct {
-	db    *gorm.DB
-	model *models.UserModel
-	cfg   *config.Config
-	log   *zap.Logger
+type (
+	UserUpdate struct {
+		Name  string `json:"name" validate:"omitempty"`
+		Email string `json:"email" validate:"omitempty,email"`
+	}
+
+	UserPassword struct {
+		OldPassword string `json:"old_password" validate:"required,min=8"`
+		NewPassword string `json:"new_password" validate:"required,min=8"`
+	}
+
+	UserResponse struct {
+		ID         uuid.UUID        `json:"id"`
+		Name       string           `json:"name"`
+		Email      string           `json:"email,omitempty"`
+		CreatedAt  time.Time        `json:"created_at"`
+		UpdatedAt  time.Time        `json:"updated_at"`
+		Admin      bool             `json:"admin"`
+		Permission permission.Level `json:"permission"`
+	}
+
+	UserParams struct {
+		helpers.GenericPagedQuery
+		IsAdmin bool `query:"is_admin"`
+	}
+
+	SignUp struct {
+		Name           string `json:"name" validate:"required"`
+		Email          string `json:"email" validate:"omitempty,email"`
+		Password       string `json:"password" validate:"required,min=8"`
+		HashedPassword string `json:"-"`
+	}
+
+	SignIn struct {
+		NameOrEmail    string `json:"name_or_email" validate:"required"`
+		Password       string `json:"password" validate:"required,min=8"`
+		HashedPassword string `json:"-"`
+	}
+
+	AuthResponse struct {
+		ID    uuid.UUID `json:"id"`
+		Name  string    `json:"name"`
+		Email string    `json:"email"`
+	}
+
+	UserHandler struct {
+		db    *gorm.DB
+		model *UserModel
+		cfg   *config.Config
+		log   *zap.Logger
+	}
+)
+
+func (s *SignUp) ToTable() User {
+	user := User{
+		Name:     s.Name,
+		Password: s.HashedPassword,
+	}
+	if s.Email != "" {
+		user.Email = s.Email
+	}
+	return user
+}
+
+func (u *UserUpdate) ToTable(id uuid.UUID) User {
+	user := User{
+		ID: id,
+	}
+	if u.Name != "" {
+		user.Name = u.Name
+	}
+	if u.Email != "" {
+		user.Email = u.Email
+	}
+	return user
+}
+
+func (u *User) ToAuthResponse() AuthResponse {
+	return AuthResponse{
+		ID:    u.ID,
+		Name:  u.Name,
+		Email: u.Email,
+	}
+}
+
+func (u *User) ToResponse(includeEmail bool) UserResponse {
+	user := UserResponse{
+		ID:         u.ID,
+		Name:       u.Name,
+		CreatedAt:  u.CreatedAt,
+		UpdatedAt:  u.UpdatedAt,
+		Admin:      u.Admin != (Admin{}),
+		Permission: u.Permission.Permission,
+	}
+
+	if includeEmail {
+		user.Email = u.Email
+	}
+
+	return user
+}
+
+func (u UserSlice) ToResponse(includeEmail bool) []UserResponse {
+	response := make([]UserResponse, 0)
+	for _, user := range u {
+		response = append(response, user.ToResponse(includeEmail))
+	}
+	return response
 }
 
 func NewUserHandler(db *gorm.DB, cfg *config.Config, log *zap.Logger) *UserHandler {
 	return &UserHandler{
 		db,
-		models.NewUserModel(db),
+		NewUserModel(db),
 		cfg,
 		log,
 	}
@@ -33,7 +136,7 @@ func NewUserHandler(db *gorm.DB, cfg *config.Config, log *zap.Logger) *UserHandl
 
 // INTERNAL CRUD ------------------------------- //
 
-func (u *UserHandler) create(c echo.Context, user structs.User) error {
+func (u *UserHandler) create(c echo.Context, user User) error {
 	u.log.Debug("UserHandler: Create")
 
 	data, err := u.model.Create(user)
@@ -57,23 +160,26 @@ func (u *UserHandler) create(c echo.Context, user structs.User) error {
 func (u *UserHandler) getAllUser(c echo.Context, includeEmail bool) error {
 	u.log.Debug("UserHandler: GetAll")
 
-	bounds := structs.PagedRequest{
-		Limit:    50,
-		Offset:   0,
-		Keywords: "",
-		Sort:     "",
+	params := UserParams{
+		GenericPagedQuery: helpers.GenericPagedQuery{
+			Limit:    50,
+			Offset:   0,
+			Keywords: "",
+			Sort:     "",
+		},
+		IsAdmin: false,
 	}
-	if err := c.Bind(&bounds); err != nil {
+	if err := c.Bind(&params); err != nil {
 		u.log.Error("Failed to set limit and offset, defaulting to 50 limit and 0 offset", zap.Error(err))
 	}
 
-	data, total, err := u.model.GetAll(bounds)
+	data, total, err := u.model.GetAll(params)
 	if err != nil {
 		u.log.Error("Failed to get users", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "There was an error while getting users")
 	}
 
-	paged := helpers.PageData(data.ToResponse(includeEmail), int(total), bounds.Offset, bounds.Limit)
+	paged := helpers.PageData(data.ToResponse(includeEmail), int(total), params.Offset, params.Limit)
 
 	if total == 0 {
 		return helpers.Response(c, http.StatusNotFound, paged, "There's no user")
@@ -97,7 +203,7 @@ func (u *UserHandler) getByID(c echo.Context, id uuid.UUID, includeEmail bool) e
 	return helpers.Response(c, http.StatusOK, data.ToResponse(includeEmail), "")
 }
 
-func (u *UserHandler) update(c echo.Context, user structs.User) error {
+func (u *UserHandler) update(c echo.Context, user User) error {
 	u.log.Debug("UserHandler: Update")
 
 	data, err := u.model.Update(user)
@@ -125,7 +231,7 @@ func (u *UserHandler) delete(c echo.Context, id uuid.UUID) error {
 
 func (u *UserHandler) SignUp(c echo.Context) error {
 	u.log.Debug("UserHandler: SignUp")
-	var request structs.SignUp
+	var request SignUp
 	if err := c.Bind(&request); err != nil {
 		return helpers.Response(c, http.StatusBadRequest, nil, "Invalid request")
 	}
@@ -148,21 +254,21 @@ func (u *UserHandler) SignUp(c echo.Context) error {
 	request.HashedPassword = hashedPassword
 
 	user := request.ToTable()
-	permission := structs.Permission{}
+	userPermission := permission.Permission{}
 	if u.cfg.AppConfig.EnforceEmail {
-		permission.Permission = structs.Read
+		userPermission.Permission = permission.Read
 	} else {
-		permission.Permission = structs.Write | structs.Read
+		userPermission.Permission = permission.Write | permission.Read
 	}
 
-	user.Permission = permission
+	user.Permission = userPermission
 
 	return u.create(c, user)
 }
 
 func (u *UserHandler) SignIn(c echo.Context) error {
 	u.log.Debug("UserHandler: SignIn")
-	var request structs.SignIn
+	var request SignIn
 	if err := c.Bind(&request); err != nil {
 		return helpers.Response(c, http.StatusBadRequest, nil, "Invalid request")
 	}
@@ -221,7 +327,7 @@ func (u *UserHandler) ChangePassword(c echo.Context) error {
 		return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
 	}
 
-	var request structs.UserPassword
+	var request UserPassword
 	if err := c.Bind(&request); err != nil {
 		return helpers.Response(c, http.StatusBadRequest, nil, "Invalid request")
 	}
@@ -260,7 +366,7 @@ func (u *UserHandler) SelfUpdate(c echo.Context) error {
 		return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
 	}
 
-	var request structs.UserUpdate
+	var request UserUpdate
 	if err := c.Bind(&request); err != nil {
 		return helpers.Response(c, http.StatusBadRequest, nil, "Invalid request")
 	}

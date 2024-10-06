@@ -2,8 +2,10 @@ package db
 
 import (
 	"fmt"
+	"maribooru/internal/account"
 	"maribooru/internal/config"
-	"maribooru/internal/structs"
+	"maribooru/internal/permission"
+	"maribooru/internal/setting"
 
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
@@ -27,7 +29,7 @@ func InitDatabase(cfg *config.Config, log *zap.Logger) (*gorm.DB, error) {
 		log.Fatal("Failed to connect to database:", zap.Error(err))
 	}
 
-	db.AutoMigrate(structs.User{}, structs.Admin{}, structs.AppSettings{}, structs.Permission{})
+	db.AutoMigrate(account.User{}, account.Admin{}, setting.AppSetting{}, permission.Permission{})
 
 	FetchSettings(cfg, db)
 

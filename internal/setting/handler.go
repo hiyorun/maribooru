@@ -1,9 +1,8 @@
-package handlers
+package setting
 
 import (
 	"maribooru/internal/config"
 	"maribooru/internal/helpers"
-	"maribooru/internal/models"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -12,25 +11,39 @@ import (
 )
 
 type (
-	SettingsHandler struct {
+	Response struct {
+		AdminCreated bool `json:"admin_created"`
+	}
+
+	Handler struct {
 		db     *gorm.DB
-		models *models.SettingsModel
+		models *Model
 		cfg    *config.Config
 		log    *zap.Logger
 	}
 )
 
-func NewSettingsHandler(db *gorm.DB, cfg *config.Config, log *zap.Logger) *SettingsHandler {
-	return &SettingsHandler{
+func (a AppSettingSlice) ToResponse() Response {
+	response := Response{}
+	for _, setting := range a {
+		if setting.Key == "ADMIN_CREATED" {
+			response.AdminCreated = setting.ValueBool
+		}
+	}
+	return response
+}
+
+func NewHandler(db *gorm.DB, cfg *config.Config, log *zap.Logger) *Handler {
+	return &Handler{
 		db,
-		models.NewSettingsModel(db),
+		NewModel(db),
 		cfg,
 		log,
 	}
 }
 
-func (s *SettingsHandler) Get(c echo.Context) error {
-	s.log.Debug("SettingsHandler: Get")
+func (s *Handler) Get(c echo.Context) error {
+	s.log.Debug("Handler: Get")
 	data, err := s.models.Get()
 	if err != nil {
 		s.log.Error("Failed to get settings", zap.Error(err))

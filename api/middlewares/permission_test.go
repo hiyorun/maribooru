@@ -3,9 +3,10 @@ package middlewares
 import (
 	"fmt"
 	"log"
+	"maribooru/internal/account"
 	"maribooru/internal/config"
 	"maribooru/internal/helpers"
-	"maribooru/internal/structs"
+	"maribooru/internal/permission"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,7 +31,7 @@ func TestPermission(t *testing.T) {
 	}
 
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	db.AutoMigrate(structs.User{}, structs.Permission{})
+	db.AutoMigrate(account.User{}, permission.Permission{})
 
 	log, err := zap.NewDevelopment()
 	if err != nil {
@@ -44,53 +45,53 @@ func TestPermission(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	users := []*structs.User{
+	users := []*account.User{
 		{
 			ID:       uuid.New(),
 			Name:     "moderator",
 			Password: pass,
-			Permission: structs.Permission{
-				Permission: structs.Moderate | structs.Write | structs.Read,
+			Permission: permission.Permission{
+				Permission: permission.Moderate | permission.Write | permission.Read,
 			},
 		},
 		{
 			ID:       uuid.New(),
 			Name:     "approver",
 			Password: pass,
-			Permission: structs.Permission{
-				Permission: structs.Approve | structs.Write | structs.Read,
+			Permission: permission.Permission{
+				Permission: permission.Approve | permission.Write | permission.Read,
 			},
 		},
 		{
 			ID:       uuid.New(),
 			Name:     "approve-only",
 			Password: pass,
-			Permission: structs.Permission{
-				Permission: structs.Approve,
+			Permission: permission.Permission{
+				Permission: permission.Approve,
 			},
 		},
 		{
 			ID:       uuid.New(),
 			Name:     "rw",
 			Password: pass,
-			Permission: structs.Permission{
-				Permission: structs.Read | structs.Write,
+			Permission: permission.Permission{
+				Permission: permission.Read | permission.Write,
 			},
 		},
 		{
 			ID:       uuid.New(),
 			Name:     "wo",
 			Password: pass,
-			Permission: structs.Permission{
-				Permission: structs.Write,
+			Permission: permission.Permission{
+				Permission: permission.Write,
 			},
 		},
 		{
 			ID:       uuid.New(),
 			Name:     "ro",
 			Password: pass,
-			Permission: structs.Permission{
-				Permission: structs.Read,
+			Permission: permission.Permission{
+				Permission: permission.Read,
 			},
 		},
 	}
@@ -99,7 +100,7 @@ func TestPermission(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tests := []structs.PermissionLevel{structs.Moderate, structs.Approve, structs.Read, structs.Write}
+	tests := []permission.Level{permission.Moderate, permission.Approve, permission.Read, permission.Write}
 
 	for _, user := range users {
 		jwt, err := helpers.GenerateJWT(user.ID, user.Name, cfg.JWT.Secret, time.Minute*2)
@@ -143,7 +144,7 @@ func TestAdmin(t *testing.T) {
 	}
 
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	db.AutoMigrate(structs.User{}, structs.Permission{}, structs.Admin{})
+	db.AutoMigrate(account.User{}, permission.Permission{}, account.Admin{})
 
 	log, err := zap.NewDevelopment()
 	if err != nil {
@@ -157,7 +158,7 @@ func TestAdmin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	users := []*structs.User{
+	users := []*account.User{
 		{
 			ID:       uuid.New(),
 			Name:     "non-admin",
@@ -176,7 +177,7 @@ func TestAdmin(t *testing.T) {
 
 	log.Debug("UUID is", zap.Any("UUID", users[0].ID))
 
-	admin := structs.Admin{
+	admin := account.Admin{
 		UserID: users[0].ID,
 	}
 

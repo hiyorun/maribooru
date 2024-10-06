@@ -1,16 +1,16 @@
 package middlewares
 
 import (
+	"maribooru/internal/account"
 	"maribooru/internal/helpers"
-	"maribooru/internal/models"
-	"maribooru/internal/structs"
+	"maribooru/internal/permission"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 )
 
-func (m *Middleware) PermissionMiddleware(requiredPermission structs.PermissionLevel) echo.MiddlewareFunc {
+func (m *Middleware) PermissionMiddleware(requiredPermission permission.Level) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			m.log.Debug("PermissionMiddleware:Authenticating")
@@ -20,7 +20,7 @@ func (m *Middleware) PermissionMiddleware(requiredPermission structs.PermissionL
 				return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
 			}
 
-			mod := models.NewPermissionModel(m.db)
+			mod := permission.NewModel(m.db)
 			userPermission, err := mod.GetByUserID(userID)
 			if err != nil {
 				m.log.Error("Failed to get user permission", zap.Error(err))
@@ -46,7 +46,7 @@ func (m *Middleware) AdminMiddleware() echo.MiddlewareFunc {
 				return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
 			}
 
-			mod := models.NewPermissionModel(m.db)
+			mod := account.NewAdminModel(m.db)
 			isAdmin, err := mod.IsAdmin(userID)
 			if err != nil {
 				return helpers.Response(c, http.StatusUnauthorized, nil, "Unauthorized")
