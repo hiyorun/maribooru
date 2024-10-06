@@ -1,0 +1,1367 @@
+{
+  "openapi": "3.1.0",
+  "servers": [
+    {
+      "url": "https://demo.maribooru.hiyo.run/api/v1",
+      "description": "The demo instance of Maribooru"
+    },
+    {
+      "url": "{protocol}://{server}/api/v1",
+      "description": "Provide your own server URL",
+      "variables": {
+        "protocol": {
+          "default": "http"
+        },
+        "server": {
+          "default": "localhost:8080"
+        }
+      }
+    }
+  ],
+  "info": {
+    "description": "This is the documentation of Maribooru's API",
+    "version": "0.1",
+    "title": "Maribooru",
+    "termsOfService": "https://maribooru.hiyo.run/tos",
+    "contact": {
+      "email": "maribooru@hiyo.run",
+      "name": "Hiyorun",
+      "url": "https://maribooru.hiyo.run"
+    },
+    "license": {
+      "name": "AGPL 3.0",
+      "url": "https://www.gnu.org/licenses/agpl-3.0.en.html"
+    }
+  },
+  "tags": [
+    {
+      "name": "users",
+      "description": "General operations for users",
+      "externalDocs": {
+        "description": "Find out more about our store",
+        "url": "http://swagger.io"
+      }
+    },
+    {
+      "name": "user",
+      "description": "Authentication and current user operations"
+    },
+    {
+      "name": "administrative",
+      "description": "Operations for administrative purposes"
+    },
+    {
+      "name": "permissions",
+      "description": "Operations for user permissions"
+    }
+  ],
+  "paths": {
+    "/users/{id}": {
+      "summary": "Get user details by ID",
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get user details by ID",
+        "description": "To get user by their ID. ID is placed as URL parameter",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "User UUID to get"
+          }
+        ],
+        "operationId": "getUserByID",
+        "responses": {
+          "200": {
+            "description": "Got the specified user's detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Invalid request ID"
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "User not found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/users": {
+      "summary": "Get all users",
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get all users",
+        "description": "To get all users with keywords. Keywords, Offset, Limit, and Sort are placed as query parameters.",
+        "parameters": [
+          {
+            "name": "keywords",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Keywords to filter users by their username. Show all if empty."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Limit results to N results. Currently hardcoded to 50 if empty. Might be changed in future to be configurable."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "The offset to start from. If empty, will always 0."
+          },
+          {
+            "name": "keywords",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Name or email to filter users by. Show all if empty."
+          },
+          {
+            "name": "is_admin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Show only admins. If empty, show all users."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Sort by column. If empty, sort by username. For all available keywords, see the [API docs](https://maribooru.hiyo.run/docs#section/Sorting).",
+            "examples": {
+              "name_desc": {
+                "value": "name desc"
+              },
+              "id_asc": {
+                "value": "id asc"
+              },
+              "created_at_asc": {
+                "value": "created_at asc"
+              }
+            }
+          }
+        ],
+        "operationId": "getAllUser",
+        "responses": {
+          "200": {
+            "description": "Got all the users, paged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PagedAPIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/User"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "No users found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/user/sign-in": {
+      "summary": "Sign-in endpoint",
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Sign-in using username or email",
+        "description": "POST with body of username or email and password in JSON. It will return a JWT token in the data field as a string.",
+        "operationId": "signIn",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "applications/json": {
+              "schema": {
+                "properties": {
+                  "name_or_email": {
+                    "type": "string",
+                    "example": "your_username"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "your_password"
+                  }
+                },
+                "required": [
+                  "name_or_email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User signed in successfully, got the JWT for signing in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "string",
+                      "example": "aVeryLongJWTToken.KeepItASecretYAll"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401",
+            "description": "Invalid credentials"
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "User not found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/user/sign-up": {
+      "summary": "Sign-up endpoint",
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Register a user",
+        "description": "POST with body of username, email (optional, unless forced from the settings), and password in JSON. It will return a JWT token in the message field as a string, while returning user's detail in the data field.",
+        "operationId": "signUp",
+        "security": [],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UserCreation"
+        },
+        "responses": {
+          "200": {
+            "description": "User signed up successfully, got the JWT for signing in, returned user's detail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/User"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "aVeryLongJWTToken.KeepItASecretYAll"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401",
+            "description": "Invalid credentials"
+          },
+          "409": {
+            "$ref": "#/components/responses/409",
+            "description": "Username or email already exists"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/user/init-admin-create": {
+      "summary": "Initial admin creation",
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Create initial admin",
+        "description": "This endpoint will only work when Maribooru is first set up. Basically the same as sign-up but registered user will be assigned as the first admin. Also returns a JWT token in the message field as a string, while returning admin's detail in the data field. When admin is already set up, returns code forbidden.",
+        "operationId": "initialAdminCreate",
+        "security": [],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UserCreation"
+        },
+        "responses": {
+          "200": {
+            "description": "Admin registered successfully, got the JWT for signing in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "string",
+                      "example": "aVeryLongJWTToken.KeepItASecretYAll"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "403": {
+            "$ref": "#/components/responses/403",
+            "description": "Admin already set up"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/user/change-password": {
+      "summary": "Change password endpoint",
+      "post": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Change password of currently signed in user",
+        "description": "POST with body of old password and new password in JSON. It will return current user's detail in the data field.",
+        "operationId": "changePassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "applications/json": {
+              "schema": {
+                "properties": {
+                  "old_password": {
+                    "type": "string",
+                    "example": "your_old_password"
+                  },
+                  "new_password": {
+                    "type": "string",
+                    "example": "your_new_password"
+                  }
+                },
+                "required": [
+                  "old_password",
+                  "new_password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User's password changed successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401",
+            "description": "Password does not match"
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "User not found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/user": {
+      "summary": "Current signed in user operations",
+      "get": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Get details",
+        "description": "Get currently signed in user's detail. It will return current user's detail in the data field.",
+        "operationId": "getUserDetail",
+        "responses": {
+          "200": {
+            "description": "Got user's detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "You need to be signed in"
+          },
+          "401": {
+            "$ref": "#/components/responses/401",
+            "description": "You need to be signed in"
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "User not found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Update user",
+        "description": "PUT with body of username and email in JSON. If field is empty string, value will be ignored. It will return updated user's detail in the data field.",
+        "operationId": "updateUser",
+        "requestBody": {
+          "content": {
+            "applications/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "your_new_username"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "your_new@e.mail"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Got user's detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401",
+            "description": "Invalid credentials"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "user"
+        ],
+        "summary": "Delete user",
+        "description": "Delete currently signed in user. Returns empty data field and status code 200.",
+        "operationId": "deleteUser",
+        "responses": {
+          "200": {
+            "description": "User deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401",
+            "description": "Invalid credentials"
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "User not found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/admin/manage": {
+      "summary": "Manage administators",
+      "post": {
+        "tags": [
+          "administrative"
+        ],
+        "summary": "Create new administrator",
+        "description": "POST with body of username, email (optional, unless forced from the settings), and password in JSON. It will return a JWT token in the message field as a string, while returning user's detail in the data field.",
+        "operationId": "adminCreate",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UserCreation"
+        },
+        "responses": {
+          "200": {
+            "description": "Admin created successfully, got the JWT for signing in, returned admin's detail.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/User"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "aVeryLongJWTToken.KeepItASecretYAll"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401",
+            "description": "Invalid credentials"
+          },
+          "409": {
+            "$ref": "#/components/responses/409",
+            "description": "Username or email already exists"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "administrative"
+        ],
+        "summary": "Get all admins",
+        "description": "To get all admins with keywords. Keywords, Offset, Limit, and Sort are placed as query parameters.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Limit results to N results. Currently hardcoded to 50 if empty. Might be changed in future to be configurable."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "The offset to start from. If empty, will always 0."
+          },
+          {
+            "name": "keywords",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Name or email to filter admins by. Show all if empty."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Sort by column. If empty, sort by username. For all available keywords, see the [API docs](https://maribooru.hiyo.run/docs#section/Sorting).",
+            "examples": {
+              "name_desc": {
+                "value": "name desc"
+              },
+              "id_asc": {
+                "value": "id asc"
+              },
+              "created_at_asc": {
+                "value": "created_at asc"
+              }
+            }
+          }
+        ],
+        "operationId": "adminGetAll",
+        "responses": {
+          "200": {
+            "description": "Got all the admins, paged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PagedAPIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/User"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "No users found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/admin/manage/{id}": {
+      "summary": "Manage administators",
+      "put": {
+        "tags": [
+          "administrative"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Assign an existing user as admin",
+        "description": "Provide the user id in the path. It will return user's administrator detail in the data field.",
+        "operationId": "adminUpdate",
+        "responses": {
+          "200": {
+            "description": "User assigned as admin, returned admin's detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Admin"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "You need to provide a valid user id on the path"
+          },
+          "409": {
+            "$ref": "#/components/responses/409",
+            "description": "User already an admin"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "administrative"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "summary": "Unassign an admin",
+        "description": "Provide the user id you want to unassign from admin in the path.",
+        "operationId": "adminDelete",
+        "responses": {
+          "200": {
+            "description": "Admin unassigned successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401",
+            "description": "Invalid User ID"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/admin/user/{id}": {
+      "put": {
+        "summary": "Update a User (Administrative)",
+        "description": "Endpoint to allow admin to update a user's details",
+        "tags": [
+          "administrative",
+          "users"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/UserCreation"
+        },
+        "operationId": "adminUserUpdate",
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "items": {
+                        "$ref": "#/components/schemas/User"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/admin/user/permission/{id}": {
+      "get": {
+        "summary": "Get Permissions by User ID",
+        "description": "Get the user permissions, passing the user's id on the URL parameter",
+        "tags": [
+          "administrative",
+          "permissions"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "adminUserPermissionGet",
+        "responses": {
+          "200": {
+            "description": "Permissions retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Permission"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "Permission not found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/admin/user/permission": {
+      "put": {
+        "summary": "Set Permissions",
+        "description": "Set user's permission",
+        "tags": [
+          "administrative",
+          "permissions"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/requestBodies/Permission"
+              }
+            }
+          }
+        },
+        "operationId": "adminUserPermissionUpdate",
+        "responses": {
+          "200": {
+            "description": "Permissions updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "items": {
+                        "$ref": "#/components/schemas/Permission"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "",
+    "url": "https://maribooru.hiyo.run/docs"
+  },
+  "components": {
+    "responses": {
+      "400": {
+        "description": "Invalid request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/GenericErrorResponse"
+                }
+              ],
+              "properties": {
+                "status": {
+                  "type": "number",
+                  "example": 400
+                }
+              }
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/GenericErrorResponse"
+                }
+              ],
+              "properties": {
+                "status": {
+                  "type": "number",
+                  "example": 401
+                }
+              }
+            }
+          }
+        }
+      },
+      "403": {
+        "description": "User does not have permission",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/GenericErrorResponse"
+                }
+              ],
+              "properties": {
+                "status": {
+                  "type": "number",
+                  "example": 403
+                }
+              }
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Record not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/GenericErrorResponse"
+                }
+              ],
+              "properties": {
+                "status": {
+                  "type": "number",
+                  "example": 404
+                }
+              }
+            }
+          }
+        }
+      },
+      "409": {
+        "description": "Conflicting records",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/GenericErrorResponse"
+                }
+              ],
+              "properties": {
+                "status": {
+                  "type": "number",
+                  "example": 409
+                }
+              }
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/GenericErrorResponse"
+                }
+              ],
+              "properties": {
+                "status": {
+                  "type": "number",
+                  "example": 500
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "GenericErrorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/APIResponse"
+          }
+        ],
+        "properties": {
+          "data": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "APIResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "integer",
+            "example": 200
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "PagedAPIResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/APIResponse"
+          }
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "per_page": {
+                    "type": "number",
+                    "example": 50
+                  },
+                  "page": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "total": {
+                    "type": "number",
+                    "example": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "name": {
+            "type": "string",
+            "example": "mari"
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2024-09-23T23:59:44.477153+00:00"
+          },
+          "updated_at": {
+            "type": "string",
+            "example": "2024-09-23T23:59:44.477153+00:00"
+          },
+          "admin": {
+            "type": "boolean",
+            "example": false
+          },
+          "permission": {
+            "type": "number",
+            "example": 3
+          }
+        }
+      },
+      "Admin": {
+        "type": "object",
+        "properties": {
+          "admin_id": {
+            "type": "string",
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "user_id": {
+            "type": "string",
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "created_at": {
+            "type": "string",
+            "example": "2024-09-23T23:59:44.477153+00:00"
+          },
+          "updated_at": {
+            "type": "string",
+            "example": "2024-09-23T23:59:44.477153+00:00"
+          }
+        }
+      },
+      "Permission": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "permission_level": {
+            "type": "number",
+            "example": 3
+          },
+          "updated_at": {
+            "type": "string",
+            "example": "2024-09-23T23:59:44.477153+00:00"
+          }
+        }
+      }
+    },
+    "requestBodies": {
+      "UserCreation": {
+        "required": true,
+        "content": {
+          "applications/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "your_username"
+                },
+                "email": {
+                  "type": "string",
+                  "example": "your_email@mail.me"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "your_password"
+                }
+              },
+              "required": [
+                "name",
+                "password"
+              ]
+            }
+          }
+        }
+      },
+      "Permission": {
+        "required": true,
+        "content": {
+          "applications/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "your_username"
+                },
+                "email": {
+                  "type": "string",
+                  "example": "your_email@mail.me"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "your_password"
+                }
+              },
+              "required": [
+                "name",
+                "password"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "links": {},
+    "callbacks": {}
+  },
+  "security": []
+}
