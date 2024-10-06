@@ -41,6 +41,15 @@ func (a *AdminModel) AssignAdmin(uuid uuid.UUID) (Admin, error) {
 	return admin, err
 }
 
+func (p *AdminModel) IsAdmin(id uuid.UUID) (bool, error) {
+	admin := Admin{}
+	err := p.db.Model(&Admin{}).Where("user_id = ?", id).First(&admin).Error
+	if err != nil {
+		return false, err
+	}
+	return admin.ID != uuid.Nil, nil
+}
+
 func (a *AdminModel) RemoveAdmin(uuid uuid.UUID) (Admin, error) {
 	admin := Admin{
 		UserID: uuid,

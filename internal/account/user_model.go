@@ -3,6 +3,7 @@ package account
 import (
 	"errors"
 	"fmt"
+	"maribooru/internal/permission"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ type (
 		UpdatedAt  time.Time
 		DeletedAt  gorm.DeletedAt
 		Admin      Admin
-		Permission Permission
+		Permission permission.Permission
 	}
 
 	UserSlice []User
@@ -113,8 +114,8 @@ func (u *UserModel) Delete(id uuid.UUID) error {
 		}
 	}
 
-	if user.Permission != (Permission{}) {
-		res := tx.Model(&Permission{}).Delete(&Permission{}, user.ID)
+	if user.Permission != (permission.Permission{}) {
+		res := tx.Model(&permission.Permission{}).Delete(&permission.Permission{}, user.ID)
 		if res.RowsAffected == 0 {
 			tx.Rollback()
 			return errors.New("Unable to delete user permissions")

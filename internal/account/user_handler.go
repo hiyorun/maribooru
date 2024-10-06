@@ -4,6 +4,7 @@ import (
 	"errors"
 	"maribooru/internal/config"
 	"maribooru/internal/helpers"
+	"maribooru/internal/permission"
 	"net/http"
 	"time"
 
@@ -26,13 +27,13 @@ type (
 	}
 
 	UserResponse struct {
-		ID         uuid.UUID       `json:"id"`
-		Name       string          `json:"name"`
-		Email      string          `json:"email,omitempty"`
-		CreatedAt  time.Time       `json:"created_at"`
-		UpdatedAt  time.Time       `json:"updated_at"`
-		Admin      bool            `json:"admin"`
-		Permission PermissionLevel `json:"permission"`
+		ID         uuid.UUID                  `json:"id"`
+		Name       string                     `json:"name"`
+		Email      string                     `json:"email,omitempty"`
+		CreatedAt  time.Time                  `json:"created_at"`
+		UpdatedAt  time.Time                  `json:"updated_at"`
+		Admin      bool                       `json:"admin"`
+		Permission permission.PermissionLevel `json:"permission"`
 	}
 
 	UserParams struct {
@@ -253,14 +254,14 @@ func (u *UserHandler) SignUp(c echo.Context) error {
 	request.HashedPassword = hashedPassword
 
 	user := request.ToTable()
-	permission := Permission{}
+	userPermission := permission.Permission{}
 	if u.cfg.AppConfig.EnforceEmail {
-		permission.Permission = Read
+		userPermission.Permission = permission.Read
 	} else {
-		permission.Permission = Write | Read
+		userPermission.Permission = permission.Write | permission.Read
 	}
 
-	user.Permission = permission
+	user.Permission = userPermission
 
 	return u.create(c, user)
 }
