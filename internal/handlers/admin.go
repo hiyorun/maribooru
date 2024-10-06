@@ -155,7 +155,7 @@ func (u *UserHandler) AssignAdmin(c echo.Context) error {
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to assign admin")
 	}
 
-	return helpers.Response(c, http.StatusOK, data, "")
+	return helpers.Response(c, http.StatusOK, data.ToResponse(), "")
 }
 
 func (u *UserHandler) RemoveAdmin(c echo.Context) error {
