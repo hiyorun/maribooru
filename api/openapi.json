@@ -988,14 +988,7 @@
           "permissions"
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/requestBodies/Permission"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/Permission"
         },
         "operationId": "adminUserPermissionUpdate",
         "responses": {
@@ -1045,14 +1038,7 @@
           "tags"
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/requestBodies/TagCategory"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/TagCategory"
         },
         "operationId": "adminTagCategoryCreate",
         "responses": {
@@ -1197,14 +1183,7 @@
           "tags"
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/requestBodies/TagCategory"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/TagCategoryUpdate"
         },
         "operationId": "adminTagCategoryUpdate",
         "responses": {
@@ -1372,14 +1351,7 @@
           "tags"
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/requestBodies/Tag"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/Tag"
         },
         "operationId": "tagCreate",
         "responses": {
@@ -1519,19 +1491,12 @@
       },
       "put": {
         "summary": "Update tag",
-        "description": "Update an existing tag",
+        "description": "Update an existing tag. Only phonetic_name and id required. If other fields are empty, they will be ignored.",
         "tags": [
           "tags"
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/requestBodies/Tag"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/TagUpdate"
         },
         "operationId": "tagUpdate",
         "responses": {
@@ -2062,6 +2027,34 @@
           }
         }
       },
+      "TagCategoryUpdate": {
+        "required": true,
+        "content": {
+          "applications/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "phonetic_category": {
+                  "type": "string",
+                  "example": "character_name"
+                },
+                "readable_category": {
+                  "type": "string",
+                  "example": "Character Name"
+                }
+              },
+              "required": [
+                "id",
+                "phonetic_category"
+              ]
+            }
+          }
+        }
+      },
       "Tag": {
         "required": true,
         "content": {
@@ -2085,6 +2078,38 @@
               "required": [
                 "phonetic_name",
                 "category_id"
+              ]
+            }
+          }
+        }
+      },
+      "TagUpdate": {
+        "required": true,
+        "content": {
+          "applications/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "phonetic_name": {
+                  "type": "string",
+                  "example": "iochi_mari"
+                },
+                "readable_name": {
+                  "type": "string",
+                  "example": "伊落マリー (Iochi Mari)"
+                },
+                "category_id": {
+                  "type": "string",
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              },
+              "required": [
+                "id",
+                "phonetic_name"
               ]
             }
           }
