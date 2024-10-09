@@ -2,6 +2,7 @@ package tag
 
 import (
 	"fmt"
+	"maribooru/internal/account"
 	"maribooru/internal/helpers"
 	"time"
 
@@ -16,11 +17,17 @@ type (
 		PhoneticCategory string    `gorm:"type:varchar(255);not null;unique"`
 		ReadableCategory string    `gorm:"type:varchar(255)"`
 		CreatedAt        time.Time
-		CreatedBy        uuid.UUID
 		UpdatedAt        time.Time
-		UpdatedBy        uuid.UUID
 		DeletedAt        gorm.DeletedAt
-		DeletedBy        uuid.UUID
+
+		CreatedByID uuid.UUID    `gorm:"type:uuid"`
+		CreatedBy   account.User `gorm:"foreignKey:CreatedByID"`
+
+		UpdatedByID uuid.UUID    `gorm:"type:uuid;default:null"`
+		UpdatedBy   account.User `gorm:"foreignKey:UpdatedByID"`
+
+		DeletedByID uuid.UUID    `gorm:"type:uuid;default:null"`
+		DeletedBy   account.User `gorm:"foreignKey:DeletedByID"`
 	}
 
 	TagCategorySlice []TagCategory
@@ -50,6 +57,9 @@ func (m *CategoryModel) GetAll(params helpers.GenericPagedQuery) (TagCategorySli
 	categories := TagCategorySlice{}
 
 	tx := m.db.
+		Preload("CreatedBy").
+		Preload("UpdatedBy").
+		Preload("DeletedBy").
 		Model(&TagCategory{}).
 		Where("phonetic_category ilike ?", fmt.Sprintf("%%%s%%", params.Keywords))
 
@@ -79,7 +89,18 @@ func (m *CategoryModel) Update(category TagCategory) (TagCategory, error) {
 	return m.GetByID(category.ID)
 }
 
-func (m *CategoryModel) Delete(id uuid.UUID) error {
+func (m *CategoryModel) Delete(id, userID uuid.UUID) error {
+	category, err := m.GetByID(id)
+	if err != nil {
+		return err
+	}
+	category.DeletedByID = userID
+
+	_, err = m.Update(category)
+	if err != nil {
+		return err
+	}
+
 	res := m.db.Model(&TagCategory{}).Delete(&TagCategory{}, id)
 	if res.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound

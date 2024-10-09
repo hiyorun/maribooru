@@ -59,6 +59,7 @@ func (s *HTTPServer) RunHTTPServer() {
 	api.Settings()
 	api.Accounts()
 	api.Heartbeat()
+	api.Tags()
 
 	openPort, err := s.testPort()
 	if err != nil {
