@@ -53,6 +53,10 @@
     {
       "name": "permissions",
       "description": "Operations for user permissions"
+    },
+    {
+      "name": "tags",
+      "description": "Operations for post tags"
     }
   ],
   "paths": {
@@ -984,14 +988,7 @@
           "permissions"
         ],
         "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/requestBodies/Permission"
-              }
-            }
-          }
+          "$ref": "#/components/requestBodies/Permission"
         },
         "operationId": "adminUserPermissionUpdate",
         "responses": {
@@ -1026,6 +1023,624 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/admin/tag-categories": {
+      "post": {
+        "summary": "Create Tag Category",
+        "description": "Create a new Tag Category",
+        "tags": [
+          "tags"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/TagCategory"
+        },
+        "operationId": "adminTagCategoryCreate",
+        "responses": {
+          "200": {
+            "description": "Tag Category created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "items": {
+                        "$ref": "#/components/schemas/TagCategory"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "409": {
+            "$ref": "#/components/responses/409",
+            "description": "Tag Category already exists"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "tags"
+        ],
+        "summary": "Get all tags categories",
+        "description": "To get all tags categories with keywords. Keywords, Offset, Limit, and Sort are placed as query parameters.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Limit results to N results. Currently hardcoded to 50 if empty. Might be changed in future to be configurable."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "The offset to start from. If empty, will always 0."
+          },
+          {
+            "name": "keywords",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Name to filter tag categories by. Show all if empty."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Sort by column. If empty, sort by name. For all available keywords, see the [API docs](https://maribooru.hiyo.run/docs#section/Sorting).",
+            "examples": {
+              "name_desc": {
+                "value": "name desc"
+              },
+              "id_asc": {
+                "value": "id asc"
+              },
+              "created_at_asc": {
+                "value": "created_at asc"
+              }
+            }
+          }
+        ],
+        "operationId": "adminTagCategoryGetAll",
+        "responses": {
+          "200": {
+            "description": "Got all the tag categories, paged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PagedAPIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/TagCategory"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update tag category",
+        "description": "Update an existing tag category",
+        "tags": [
+          "tags"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/TagCategoryUpdate"
+        },
+        "operationId": "adminTagCategoryUpdate",
+        "responses": {
+          "200": {
+            "description": "Tag Category updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "items": {
+                        "$ref": "#/components/schemas/TagCategory"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/admin/tag-category/{id}": {
+      "get": {
+        "summary": "Get Tag Category by ID",
+        "description": "Get a tag category by ID",
+        "tags": [
+          "tags"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "adminTagCategoryGetById",
+        "responses": {
+          "200": {
+            "description": "Tag Category found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/TagCategory"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "Tag Category not found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Tag Category",
+        "description": "Delete a tag category by ID",
+        "tags": [
+          "tags"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "adminTagCategoryDelete",
+        "responses": {
+          "200": {
+            "description": "Tag Category deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/TagCategory"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "Tag Category not found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/tag": {
+      "post": {
+        "summary": "Create Tag",
+        "description": "Create a new Tag",
+        "tags": [
+          "tags"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/Tag"
+        },
+        "operationId": "tagCreate",
+        "responses": {
+          "200": {
+            "description": "Tag created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "items": {
+                        "$ref": "#/components/schemas/Tag"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "409": {
+            "$ref": "#/components/responses/409",
+            "description": "Tag already exists"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "tags"
+        ],
+        "summary": "Get all tags",
+        "description": "To get all tags with keywords. Keywords, Offset, Limit, and Sort are placed as query parameters.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "Limit results to N results. Currently hardcoded to 50 if empty. Might be changed in future to be configurable."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number"
+            },
+            "description": "The offset to start from. If empty, will always 0."
+          },
+          {
+            "name": "keywords",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Name to filter tags by. Show all if empty."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Sort by column. If empty, sort by name. For all available keywords, see the [API docs](https://maribooru.hiyo.run/docs#section/Sorting).",
+            "examples": {
+              "name_desc": {
+                "value": "name desc"
+              },
+              "id_asc": {
+                "value": "id asc"
+              },
+              "created_at_asc": {
+                "value": "created_at asc"
+              }
+            }
+          }
+        ],
+        "operationId": "tagGetAll",
+        "responses": {
+          "200": {
+            "description": "Got all the tags, paged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/PagedAPIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Tag"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update tag",
+        "description": "Update an existing tag. Only phonetic_name and id required. If other fields are empty, they will be ignored.",
+        "tags": [
+          "tags"
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/TagUpdate"
+        },
+        "operationId": "tagUpdate",
+        "responses": {
+          "200": {
+            "description": "Tag updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "items": {
+                        "$ref": "#/components/schemas/Tag"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      }
+    },
+    "/tag/{id}": {
+      "get": {
+        "summary": "Get Tag by ID",
+        "description": "Get a tag by ID",
+        "tags": [
+          "tags"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "tagGetById",
+        "responses": {
+          "200": {
+            "description": "Tag found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Tag"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "Tag not found"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Tag",
+        "description": "Delete a tag by ID",
+        "tags": [
+          "tags"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "operationId": "tagDelete",
+        "responses": {
+          "200": {
+            "description": "Tag deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/APIResponse"
+                    }
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "list": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Tag"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400",
+            "description": "Validation, or malformed request body"
+          },
+          "404": {
+            "$ref": "#/components/responses/404",
+            "description": "Tag not found"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -1284,6 +1899,44 @@
             "example": "2024-09-23T23:59:44.477153+00:00"
           }
         }
+      },
+      "TagCategory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "slug": {
+            "type": "string",
+            "example": "character_name"
+          },
+          "name": {
+            "type": "string",
+            "example": "Character Name"
+          }
+        }
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "00000000-0000-0000-0000-000000000000"
+          },
+          "slug": {
+            "type": "string",
+            "example": "iochi_mari"
+          },
+          "name": {
+            "type": "string",
+            "example": "伊落マリー (Iochi Mari)"
+          },
+          "category": {
+            "type": "object",
+            "$ref": "#/components/schemas/TagCategory"
+          }
+        }
       }
     },
     "requestBodies": {
@@ -1342,6 +1995,117 @@
             }
           }
         }
+      },
+      "TagCategory": {
+        "required": true,
+        "content": {
+          "applications/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string",
+                  "example": "character_name"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "Character Name"
+                }
+              },
+              "required": [
+                "phonetic_category"
+              ]
+            }
+          }
+        }
+      },
+      "TagCategoryUpdate": {
+        "required": true,
+        "content": {
+          "applications/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "slug": {
+                  "type": "string",
+                  "example": "character_name"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "Character Name"
+                }
+              },
+              "required": [
+                "id",
+                "slug"
+              ]
+            }
+          }
+        }
+      },
+      "Tag": {
+        "required": true,
+        "content": {
+          "applications/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string",
+                  "example": "iochi_mari"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "伊落マリー (Iochi Mari)"
+                },
+                "category_id": {
+                  "type": "string",
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              },
+              "required": [
+                "slug",
+                "category_id"
+              ]
+            }
+          }
+        }
+      },
+      "TagUpdate": {
+        "required": true,
+        "content": {
+          "applications/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "example": "00000000-0000-0000-0000-000000000000"
+                },
+                "slug": {
+                  "type": "string",
+                  "example": "iochi_mari"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "伊落マリー (Iochi Mari)"
+                },
+                "category_id": {
+                  "type": "string",
+                  "example": "00000000-0000-0000-0000-000000000000"
+                }
+              },
+              "required": [
+                "id",
+                "slug"
+              ]
+            }
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -1353,6 +2117,5 @@
     },
     "links": {},
     "callbacks": {}
-  },
-  "security": []
+  }
 }
