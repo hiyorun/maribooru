@@ -6,6 +6,7 @@ import (
 	"maribooru/internal/config"
 	"maribooru/internal/helpers"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,7 +49,7 @@ type (
 
 func (c *CategoryCreate) ToTable() TagCategory {
 	return TagCategory{
-		Slug: c.Slug,
+		Slug: strings.ToLower(helpers.RemoveSpaces(c.Slug)),
 		Name: c.Name,
 	}
 }
@@ -56,7 +57,7 @@ func (c *CategoryCreate) ToTable() TagCategory {
 func (c *CategoryUpdate) ToTable() TagCategory {
 	return TagCategory{
 		ID:   c.ID,
-		Slug: c.Slug,
+		Slug: strings.ToLower(helpers.RemoveSpaces(c.Slug)),
 		Name: c.Name,
 	}
 }
@@ -112,6 +113,9 @@ func (ch *CategoryHandler) CreateCategory(c echo.Context) error {
 
 	data, err := ch.model.Create(category)
 	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return helpers.Response(c, http.StatusConflict, nil, "Tag category already exists")
+		}
 		ch.log.Error("Failed to create tag category", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to create tag category")
 	}
