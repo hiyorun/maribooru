@@ -2,9 +2,8 @@ package tag
 
 import (
 	"fmt"
-	"maribooru/internal/account"
+	"maribooru/internal/common"
 	"maribooru/internal/helpers"
-	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -13,21 +12,10 @@ import (
 
 type (
 	TagCategory struct {
-		ID               uuid.UUID `gorm:"primary_key;type:uuid"`
-		PhoneticCategory string    `gorm:"type:varchar(255);not null;unique"`
-		ReadableCategory string    `gorm:"type:varchar(255)"`
-		CreatedAt        time.Time
-		UpdatedAt        time.Time
-		DeletedAt        gorm.DeletedAt
-
-		CreatedByID uuid.UUID    `gorm:"type:uuid"`
-		CreatedBy   account.User `gorm:"foreignKey:CreatedByID"`
-
-		UpdatedByID uuid.UUID    `gorm:"type:uuid;default:null"`
-		UpdatedBy   account.User `gorm:"foreignKey:UpdatedByID"`
-
-		DeletedByID uuid.UUID    `gorm:"type:uuid;default:null"`
-		DeletedBy   account.User `gorm:"foreignKey:DeletedByID"`
+		ID   uuid.UUID `gorm:"primary_key;type:uuid"`
+		Slug string    `gorm:"type:varchar(255);not null;unique"`
+		Name string    `gorm:"type:varchar(255)"`
+		common.AuditFields
 	}
 
 	TagCategorySlice []TagCategory
@@ -61,7 +49,7 @@ func (m *CategoryModel) GetAll(params helpers.GenericPagedQuery) (TagCategorySli
 		Preload("UpdatedBy").
 		Preload("DeletedBy").
 		Model(&TagCategory{}).
-		Where("phonetic_category ilike ?", fmt.Sprintf("%%%s%%", params.Keywords))
+		Where("slug ilike ?", fmt.Sprintf("%%%s%%", params.Keywords))
 
 	total := int64(0)
 	err := tx.Count(&total).Error
