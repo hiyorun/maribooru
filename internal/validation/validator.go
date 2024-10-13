@@ -1,4 +1,4 @@
-package helpers
+package validation
 
 import (
 	"github.com/go-playground/validator"
@@ -14,8 +14,8 @@ func NewValidator(validator *validator.Validate) *Validator {
 	}
 }
 
-func (cv *Validator) Validate(i interface{}) error {
-	if err := cv.validator.Struct(i); err != nil {
+func (v *Validator) Validate(i interface{}) error {
+	if err := v.validator.Struct(i); err != nil {
 		return err
 	}
 	return nil

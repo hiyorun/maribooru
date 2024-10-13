@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"maribooru/api/routes"
 	"maribooru/internal/config"
-	"maribooru/internal/helpers"
+	"maribooru/internal/validation"
 	"net"
 	"net/http"
 
@@ -24,7 +24,14 @@ type HTTPServer struct {
 
 func NewHTTPServer(cfg *config.Config, db *gorm.DB, log *zap.Logger) HTTPServer {
 	e := echo.New()
-	e.Validator = helpers.NewValidator(validator.New())
+	validate := validator.New()
+
+	err := validate.RegisterValidation("slug", validation.ValidateSlug)
+	if err != nil {
+		log.Fatal("Failed to register slug validation", zap.Error(err))
+	}
+
+	e.Validator = validation.NewValidator(validate)
 
 	return HTTPServer{
 		db:         db,
