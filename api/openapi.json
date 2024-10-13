@@ -1907,11 +1907,11 @@
             "type": "string",
             "example": "00000000-0000-0000-0000-000000000000"
           },
-          "phonetic_category": {
+          "slug": {
             "type": "string",
             "example": "character_name"
           },
-          "readable_category": {
+          "name": {
             "type": "string",
             "example": "Character Name"
           }
@@ -1924,11 +1924,11 @@
             "type": "string",
             "example": "00000000-0000-0000-0000-000000000000"
           },
-          "phonetic_name": {
+          "slug": {
             "type": "string",
             "example": "iochi_mari"
           },
-          "readable_name": {
+          "name": {
             "type": "string",
             "example": "伊落マリー (Iochi Mari)"
           },
@@ -2003,11 +2003,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "phonetic_category": {
+                "slug": {
                   "type": "string",
                   "example": "character_name"
                 },
-                "readable_category": {
+                "name": {
                   "type": "string",
                   "example": "Character Name"
                 }
@@ -2030,18 +2030,18 @@
                   "type": "string",
                   "example": "00000000-0000-0000-0000-000000000000"
                 },
-                "phonetic_category": {
+                "slug": {
                   "type": "string",
                   "example": "character_name"
                 },
-                "readable_category": {
+                "name": {
                   "type": "string",
                   "example": "Character Name"
                 }
               },
               "required": [
                 "id",
-                "phonetic_category"
+                "slug"
               ]
             }
           }
@@ -2054,11 +2054,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "phonetic_name": {
+                "slug": {
                   "type": "string",
                   "example": "iochi_mari"
                 },
-                "readable_name": {
+                "name": {
                   "type": "string",
                   "example": "伊落マリー (Iochi Mari)"
                 },
@@ -2068,7 +2068,7 @@
                 }
               },
               "required": [
-                "phonetic_name",
+                "slug",
                 "category_id"
               ]
             }
@@ -2086,11 +2086,11 @@
                   "type": "string",
                   "example": "00000000-0000-0000-0000-000000000000"
                 },
-                "phonetic_name": {
+                "slug": {
                   "type": "string",
                   "example": "iochi_mari"
                 },
-                "readable_name": {
+                "name": {
                   "type": "string",
                   "example": "伊落マリー (Iochi Mari)"
                 },
@@ -2101,7 +2101,7 @@
               },
               "required": [
                 "id",
-                "phonetic_name"
+                "slug"
               ]
             }
           }
