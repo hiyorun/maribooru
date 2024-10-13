@@ -151,10 +151,7 @@ func (ch *CategoryHandler) GetCategories(c echo.Context) error {
 	}
 
 	data, count, err := ch.model.GetAll(params)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return helpers.Response(c, http.StatusNotFound, nil, "Tag categories not found")
-		}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		ch.log.Error("Failed to get tag categories", zap.Error(err))
 		return helpers.Response(c, http.StatusInternalServerError, nil, "Failed to get tag categories")
 	}

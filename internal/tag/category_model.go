@@ -65,7 +65,13 @@ func (m *CategoryModel) GetAll(params helpers.GenericPagedQuery) (TagCategorySli
 
 func (m *CategoryModel) GetByID(id uuid.UUID) (TagCategory, error) {
 	category := TagCategory{}
-	err := m.db.Model(&TagCategory{}).First(&category, id).Error
+	err := m.db.Model(&TagCategory{}).
+		Preload("CreatedBy").
+		Preload("UpdatedBy").
+		Preload("DeletedBy").
+		First(&category, id).
+		Error
+
 	return category, err
 }
 
