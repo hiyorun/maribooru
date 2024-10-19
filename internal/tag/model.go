@@ -14,8 +14,8 @@ type (
 		ID         uuid.UUID   `gorm:"primary_key;type:uuid"`
 		Slug       string      `gorm:"type:varchar(255);not null;uniqueIndex:idx_slug_category"`
 		Name       string      `gorm:"type:varchar(255)"`
-		CategoryID uuid.UUID   `gorm:"type:uuid"`
-		Category   TagCategory `gorm:"foreignKey:CategoryID;uniqueIndex:idx_slug_category"`
+		CategoryID uuid.UUID   `gorm:"type:uuid;uniqueIndex:idx_slug_category"`
+		Category   TagCategory `gorm:"foreignKey:CategoryID"`
 
 		common.AuditFields
 	}
