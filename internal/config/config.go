@@ -1,16 +1,19 @@
 package config
 
 import (
-	"log"
+	"fmt"
 	"maribooru/internal/helpers"
 	"os"
+	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 )
 
 type (
@@ -21,108 +24,163 @@ type (
 		JWT          JWT
 		AssetStorage AssetStorage
 	}
+
 	AppConfig struct {
-		Development   bool
-		EnforceEmail  bool
-		AdminCreated  bool
-		TokenLifetime time.Duration
+		Development   bool          `env:"DEVELOPMENT;default:false"`
+		EnforceEmail  bool          `env:"ENFORCE_EMAIL;default:false"`
+		AdminCreated  bool          `env:"ADMIN_CREATED;default:false"`
+		TokenLifetime time.Duration `env:"TOKEN_LIFETIME;default:24h"`
 	}
+
 	Database struct {
-		Username string
-		Password string
-		Host     string
-		Port     string
-		Name     string
-		SSL      string
+		Username string `env:"DB_USERNAME;default:maridb"`
+		Password string `env:"DB_PASSWORD;required"`
+		Host     string `env:"DB_HOST;default:127.0.0.1"`
+		Port     string `env:"DB_PORT;default:5432"`
+		Name     string `env:"DB_NAME;default:maridb"`
+		SSL      string `env:"DB_SSL;default:disable"`
 	}
+
 	HTTP struct {
-		Host   string
-		Port   int
-		Domain string
+		Host   string `env:"LISTEN_HOST;default:127.0.0.1"`
+		Port   int    `env:"LISTEN_PORT;default:8080"`
+		Domain string `env:"DOMAIN;default:http://localhost"`
 	}
+
 	JWT struct {
-		Secret []byte
-		Config echojwt.Config
+		Secret string         `env:"JWT_SECRET;required"`
+		Config echojwt.Config `env:"-"`
 	}
+
 	AssetStorage struct {
-		Path string
+		UseS3             bool   `env:"USE_S3;default:false"`
+		S3Endpoint        string `env:"S3_ENDPOINT;required_if:USE_S3=true"`
+		S3AccessKey       string `env:"S3_ACCESS_KEY;required_if:USE_S3=true"`
+		S3SecretAccessKey string `env:"S3_SECRET_ACCESS_KEY;required_if:USE_S3=true"`
+		S3UseSSL          bool   `env:"S3_USE_SSL;default:false"`
 	}
 )
 
+var log *zap.Logger
+
 func LoadConfig() (*Config, error) {
-	errEnv := godotenv.Load()
-
-	if errEnv != nil {
-		log.Fatal("Unable to load .env file", errEnv)
-	}
-
-	development, _ := configDefaults("DEVELOPMENT", "false")
-	enforceEmail, _ := configDefaults("ENFORCE_EMAIL", "false")
-	tokenStringLifetime, _ := configDefaults("TOKEN_LIFETIME", "24h")
-	tokenLifetime, err := time.ParseDuration(tokenStringLifetime)
+	err := godotenv.Load()
+	log = helpers.NewZapLogger(os.Getenv("DEVELOPMENT") == "true")
 	if err != nil {
-		log.Fatal("Token lifetime must be a duration")
+		log.Fatal("Error loading .env file: %v", zap.Error(err))
+		return nil, err
 	}
 
-	dbUsername, _ := configDefaults("DB_USERNAME", "maridb")
-	dbPassword, _ := configDefaults("DB_PASSWORD", "changeme")
-	dbHost, _ := configDefaults("DB_HOST", "127.0.0.1")
-	dbPort, _ := configDefaults("DB_PORT", "5432")
-	dbName, _ := configDefaults("DB_NAME", "maridb")
-	dbSSL, _ := configDefaults("DB_SSL", "disable")
+	c := &Config{}
 
-	listenHost, _ := configDefaults("LISTEN_HOST", "127.0.0.1")
-	listenPort, _ := configDefaults("LISTEN_PORT", "8080")
-	intListenPort, err := strconv.Atoi(listenPort)
+	// Process struct fields recursively
+	err = ProcessStruct(reflect.ValueOf(c).Elem(), "")
 	if err != nil {
-		log.Fatal("Port must be a number")
+		log.Error("There was an error processing the config struct", zap.Error(err))
+		return nil, err
 	}
-	domain, _ := configDefaults("DOMAIN", "http://localhost")
-	jwtSecret, _ := configDefaults("JWT_SECRET", "")
-	config := echojwt.Config{
+
+	c.JWT.Config = echojwt.Config{
 		NewClaimsFunc: func(c echo.Context) jwt.Claims {
 			return new(helpers.JWTUser)
 		},
-		SigningKey: []byte(jwtSecret),
-	}
-	storagePath, _ := configDefaults("ASSET_PATH", "./")
-
-	var cfg Config = Config{
-		AppConfig: AppConfig{
-			Development:   development == "true",
-			EnforceEmail:  enforceEmail == "true",
-			TokenLifetime: tokenLifetime,
-		},
-		Database: Database{
-			Username: dbUsername,
-			Password: dbPassword,
-			Host:     dbHost,
-			Port:     dbPort,
-			Name:     dbName,
-			SSL:      dbSSL,
-		},
-		HTTP: HTTP{
-			Host:   listenHost,
-			Port:   intListenPort,
-			Domain: domain,
-		},
-		JWT: JWT{
-			Secret: []byte(jwtSecret),
-			Config: config,
-		},
-		AssetStorage: AssetStorage{
-			Path: storagePath,
-		},
+		SigningKey: []byte(c.JWT.Secret),
 	}
 
-	return &cfg, nil
+	return c, nil
 }
 
-func configDefaults(env, defaults string) (string, bool) {
-	value, ok := os.LookupEnv(env)
-	if !ok {
-		log.Printf("%s is unset. Resorting to default value of %s", env, defaults)
-		return defaults, ok
+func ProcessStruct(val reflect.Value, parentField string) error {
+	missingRequired := []string{}
+
+	t := val.Type()
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := t.Field(i)
+		fieldName := fieldType.Name
+		if parentField != "" {
+			fieldName = parentField + "." + fieldName
+		}
+
+		// If it's a struct, recursively process it
+		if field.Kind() == reflect.Struct && fieldType.Type != reflect.TypeOf(time.Duration(0)) && fieldType.Tag.Get("env") != "-" {
+			if err := ProcessStruct(field, fieldName); err != nil {
+				return err
+			}
+			continue
+		}
+
+		tagValue := fieldType.Tag.Get("env")
+		if tagValue == "" {
+			continue
+		}
+
+		parts := strings.Split(tagValue, ";")
+		envKey := parts[0]
+		defaultValue := ""
+		isRequired := false
+		requiredIf := ""
+
+		for _, part := range parts[1:] {
+			switch {
+			case strings.HasPrefix(part, "default:"):
+				defaultValue = strings.TrimPrefix(part, "default:")
+			case part == "required":
+				isRequired = true
+			case strings.HasPrefix(part, "required_if:"):
+				requiredIf = strings.TrimPrefix(part, "required_if:")
+			}
+		}
+
+		envValue := os.Getenv(envKey)
+		if envValue == "" {
+			envValue = defaultValue
+		}
+
+		if isRequired && envValue == "" {
+			missingRequired = append(missingRequired, fieldName)
+		}
+
+		if requiredIf != "" {
+			condition := strings.Split(requiredIf, "=")
+			if len(condition) == 2 {
+				conditionKey, conditionValue := condition[0], condition[1]
+				if strings.EqualFold(os.Getenv(conditionKey), conditionValue) && envValue == "" {
+					missingRequired = append(missingRequired, fmt.Sprintf("%s (required when %s=%s)", fieldName, conditionKey, conditionValue))
+				}
+			}
+		}
+
+		// Set field value based on its type
+		switch field.Type() {
+		case reflect.TypeOf(time.Duration(0)):
+			if duration, err := time.ParseDuration(envValue); err == nil {
+				field.Set(reflect.ValueOf(duration))
+			} else {
+				log.Fatal("Invalid duration", zap.String(envKey, err.Error()))
+				return err
+			}
+		default:
+			switch field.Kind() {
+			case reflect.Int:
+				if val, err := strconv.Atoi(envValue); err == nil {
+					field.SetInt(int64(val))
+				} else {
+					log.Fatal("Invalid integer", zap.String(envKey, err.Error()))
+					return err
+				}
+			case reflect.String:
+				field.SetString(envValue)
+			case reflect.Bool:
+				field.SetBool(strings.ToLower(envValue) == "true")
+			}
+		}
 	}
-	return value, ok
+
+	if len(missingRequired) > 0 {
+		return fmt.Errorf("missing required fields: %s", strings.Join(missingRequired, ", "))
+	}
+
+	return nil
 }
