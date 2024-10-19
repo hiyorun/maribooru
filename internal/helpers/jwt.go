@@ -16,7 +16,7 @@ type JWTUser struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(uid uuid.UUID, name string, secret []byte, expiry time.Duration) (string, error) {
+func GenerateJWT(uid uuid.UUID, name string, secret string, expiry time.Duration) (string, error) {
 	claims := JWTUser{
 		Name: name,
 		ID:   uid,
@@ -26,10 +26,11 @@ func GenerateJWT(uid uuid.UUID, name string, secret []byte, expiry time.Duration
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(secret)
+	return token.SignedString([]byte(secret))
 }
 
-func GetUserID(c echo.Context, secret []byte) (uuid.UUID, error) {
+func GetUserID(c echo.Context, secret string) (uuid.UUID, error) {
+	secretByte := []byte(secret)
 	token := c.Request().Header.Get("Authorization")
 	if token == "" {
 		return uuid.Nil, errors.New("Token is empty")
@@ -37,7 +38,7 @@ func GetUserID(c echo.Context, secret []byte) (uuid.UUID, error) {
 
 	claims := JWTUser{}
 	_, err := jwt.ParseWithClaims(token[7:], &claims, func(token *jwt.Token) (interface{}, error) {
-		return secret, nil
+		return secretByte, nil
 	})
 	if err != nil {
 		return uuid.Nil, err

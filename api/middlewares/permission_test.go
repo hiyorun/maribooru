@@ -26,7 +26,7 @@ func TestPermission(t *testing.T) {
 
 	cfg := &config.Config{
 		JWT: config.JWT{
-			Secret: []byte("secret"),
+			Secret: "secret",
 		},
 	}
 
@@ -139,7 +139,7 @@ func TestAdmin(t *testing.T) {
 
 	cfg := &config.Config{
 		JWT: config.JWT{
-			Secret: []byte("secret"),
+			Secret: "secret",
 		},
 	}
 
